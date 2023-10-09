@@ -1,0 +1,20 @@
+package com.laconic.pcms.service.concrete;
+
+import com.laconic.pcms.enums.ProgressStatus;
+import com.laconic.pcms.request.SubTaskRequest;
+import com.laconic.pcms.response.PaginationResponse;
+import com.laconic.pcms.response.SubTaskResponse;
+
+import java.util.List;
+
+public interface ISubTaskService {
+    SubTaskResponse save(SubTaskRequest request);
+    void update(SubTaskRequest request, Long id);
+    PaginationResponse<SubTaskResponse> getAll(int pageNo, int pageSize, String sortBy, String sortDir, String keyword, List<String> searchAttributes);
+    List<SubTaskResponse> getAll();
+    SubTaskResponse getById(Long id);
+
+    void changeStatus(Long id, ProgressStatus status);
+    void disable(Long id);
+    void changeAssignee(Long id, Long userId);
+}
