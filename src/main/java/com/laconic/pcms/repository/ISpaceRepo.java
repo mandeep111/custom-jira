@@ -52,5 +52,6 @@ public interface ISpaceRepo extends JpaRepository<Space, Long>, JpaSpecification
             "WHERE s.id = :spaceId")
     Space findByIdWithProjectsAndUsers(Long spaceId);
 
-
+    @EntityGraph(value = "space.graph")
+    Optional<Space> findByUrlEqualsIgnoreCase(String url);
 }

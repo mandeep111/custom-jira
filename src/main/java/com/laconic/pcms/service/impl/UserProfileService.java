@@ -50,6 +50,14 @@ public class UserProfileService implements IUserProfileService {
     public List<TaskResponse> getMyTasks() {
         var tasks = getAllTasksByAssignee();
         var result = convertList(tasks, TaskResponse.class);
+        result.forEach(task -> projectRepo.findById(task.getProjectId())
+                .map(project -> {
+                    task.setSpaceId(project.getSpace().getId());
+                    task.setSpaceName(project.getSpace().getName());
+                    task.setUrl("/" + project.getSpace().getId() + "/" + project.getSpace().getUrl() + "/" + project.getId() + "/" + project.getUrl());
+                    return project;
+                })
+        );
         return result.stream().map(TaskUtil::mapProgress).toList();
     }
 
@@ -80,6 +88,9 @@ public class UserProfileService implements IUserProfileService {
                     Space space = fp.getSpace();
                     SpaceResponse spaceResponse = convertObject(space, SpaceResponse.class);
                     spaceResponse.setIsFavorite(true);
+                    var projectResponse = convertList(spaceResponse.getProjects(), ProjectResponse.class);
+                    // Set favorite projects after filtering
+                    spaceResponse.setProjects(favoriteComponent.mapFavoriteProjects(projectResponse));
                     spaceResponse.setFolders(folderComponent.getFolderResponses(space.getFolders().stream().toList()));
                     return spaceResponse;
                 }).toList();
@@ -88,7 +99,21 @@ public class UserProfileService implements IUserProfileService {
     @Override
     public List<SubTaskResponse> getMySubTasks() {
         List<SubTask> subTasks = getAllSubTasksByAssignee();
-        return convertList(subTasks, SubTaskResponse.class);
+        List<SubTaskResponse> subTaskResponses = convertList(subTasks, SubTaskResponse.class);
+
+        for (SubTaskResponse subTaskResponse : subTaskResponses) {
+            Long taskId = subTaskResponse.getTaskId();
+            Task task = taskRepo.findById(taskId).orElse(null);
+            if (task != null) {
+                subTaskResponse.setSpaceId(task.getProject().getSpace().getId());
+                subTaskResponse.setSpaceName(task.getProject().getSpace().getName());
+                subTaskResponse.setProjectId(task.getProject().getId());
+                subTaskResponse.setProjectName(task.getProject().getName());
+                subTaskResponse.setUrl("/" + task.getProject().getSpace().getId() + "/" + task.getProject().getSpace().getUrl() + "/" + task.getProject().getId() + "/" + task.getProject().getUrl());
+            }
+        }
+
+        return subTaskResponses;
     }
 
     @Override
@@ -100,6 +125,9 @@ public class UserProfileService implements IUserProfileService {
                 .map(fp -> {
                     Space space = fp.getSpace();
                     SpaceResponse spaceResponse = convertObject(space, SpaceResponse.class);
+                    var projectResponse = convertList(spaceResponse.getProjects(), ProjectResponse.class);
+                    // Set favorite projects after filtering
+                    spaceResponse.setProjects(favoriteComponent.mapFavoriteProjects(projectResponse));
                     spaceResponse.setIsFavorite(true);
                     spaceResponse.setFolders(folderComponent.getFolderResponses(space.getFolders().stream().toList()));
                     return spaceResponse;
@@ -188,7 +216,7 @@ public class UserProfileService implements IUserProfileService {
 
     @Override
     public Map<UserResponse, Map<ProgressStatus, Long>> getAllSubTasks(Date startDate, Date endDate) {
-        var subTasks = this.subTaskRepo.findAllByAssignedDateBetween(startDate,endDate);
+        var subTasks = this.subTaskRepo.findAllByAssignedDateBetween(startDate, endDate);
         return getSubTasksCount(subTasks);
     }
 

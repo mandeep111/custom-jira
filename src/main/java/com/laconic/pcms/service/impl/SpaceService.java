@@ -5,6 +5,7 @@ import com.laconic.pcms.component.DuplicateComponent;
 import com.laconic.pcms.component.FavoriteComponent;
 import com.laconic.pcms.component.FolderComponent;
 import com.laconic.pcms.entity.*;
+import com.laconic.pcms.enums.NotificationType;
 import com.laconic.pcms.exceptions.PreconditionFailedException;
 import com.laconic.pcms.repository.*;
 import com.laconic.pcms.request.IdRequest;
@@ -14,7 +15,9 @@ import com.laconic.pcms.response.ProjectResponse;
 import com.laconic.pcms.response.SpaceResponse;
 import com.laconic.pcms.service.concrete.ISpaceService;
 import com.laconic.pcms.utils.KeyCloakAuthenticationUtil;
+import com.laconic.pcms.utils.NotificationUtil;
 import org.jetbrains.annotations.NotNull;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -35,10 +38,10 @@ import static com.laconic.pcms.utils.CommonMapper.getPaginationResponse;
 import static com.laconic.pcms.utils.ExceptionMapper.throwNotFoundException;
 import static com.laconic.pcms.utils.KeyCloakAuthenticationUtil.getUserEmail;
 import static com.laconic.pcms.utils.TaskUtil.getFilteredProjects;
-import static com.laconic.pcms.utils.TaskUtil.getFilteredTasks;
 
 @Service
 public class SpaceService implements ISpaceService {
+
     public static final String USER_TABLE_NAME = "users";
     private final ISpaceRepo spaceRepo;
     private final IUserRepo userRepo;
@@ -50,8 +53,9 @@ public class SpaceService implements ISpaceService {
     private final ISubTaskRepo subTaskRepo;
     private final IFavoriteSpaceRepo favoriteSpaceRepo;
     private final KeyCloakAuthenticationUtil keyCloakAuthenticationUtil;
+    private final NotificationUtil notificationUtil;
 
-    public SpaceService(ISpaceRepo spaceRepo, IUserRepo userRepo, IProjectRepo projectRepo, FavoriteComponent favoriteComponent, FolderComponent folderComponent, DuplicateComponent duplicateComponent, ITaskRepo taskRepo, ISubTaskRepo subTaskRepo, IFavoriteSpaceRepo favoriteSpaceRepo, KeyCloakAuthenticationUtil keyCloakAuthenticationUtil) {
+    public SpaceService(ISpaceRepo spaceRepo, IUserRepo userRepo, IProjectRepo projectRepo, FavoriteComponent favoriteComponent, FolderComponent folderComponent, DuplicateComponent duplicateComponent, ITaskRepo taskRepo, ISubTaskRepo subTaskRepo, IFavoriteSpaceRepo favoriteSpaceRepo, KeyCloakAuthenticationUtil keyCloakAuthenticationUtil, NotificationUtil notificationUtil) {
         this.spaceRepo = spaceRepo;
         this.userRepo = userRepo;
         this.projectRepo = projectRepo;
@@ -62,6 +66,7 @@ public class SpaceService implements ISpaceService {
         this.subTaskRepo = subTaskRepo;
         this.favoriteSpaceRepo = favoriteSpaceRepo;
         this.keyCloakAuthenticationUtil = keyCloakAuthenticationUtil;
+        this.notificationUtil = notificationUtil;
     }
 
     @Override
@@ -75,12 +80,16 @@ public class SpaceService implements ISpaceService {
         } else if (!request.getUserIds().isEmpty()) {
             throw new PreconditionFailedException("Private Space can not have assignee");
         }
+        // email every user except the creator of space
+        var emailUsers = users.stream().filter(u -> !u.getEmail().equals(currentUser.getEmail())).collect(Collectors.toSet());
         // check if current user is added or not
         if (users.stream().noneMatch(u -> u.getId().equals(currentUser.getId()))) {
             users.add(currentUser);
         }
         space.setUsers(users); // add currently logged-in user
         this.spaceRepo.save(space);
+        var pmsUrlUi = space.getId() +"/"+space.getUrl();
+        notificationUtil.sendEmails(emailUsers, NotificationType.space, space.getName(), pmsUrlUi);
     }
 
 
@@ -147,11 +156,12 @@ public class SpaceService implements ISpaceService {
                     List<Project> filteredProjects = getFilteredProjects(email, space.getProjects());
                     // Create a SpaceResponse and set filtered projects
                     SpaceResponse spaceResponse = convertObject(space, SpaceResponse.class);
-                    spaceResponse.setProjects(convertList(filteredProjects, ProjectResponse.class));
+                    var projectResponse = convertList(filteredProjects, ProjectResponse.class);
+                    // Set favorite projects after filtering
+                    spaceResponse.setProjects(favoriteComponent.mapFavoriteProjects(projectResponse));
                     spaceResponse.setFolders(folderComponent.getFolderResponses(space.getFolders().stream().toList()));
                     return spaceResponse;
-                })
-                .toList();
+                }).toList();
     }
 
    /* private List<SpaceResponse> getList(List<Space> page) {
@@ -165,11 +175,12 @@ public class SpaceService implements ISpaceService {
 
     @Override
     public SpaceResponse getById(Long id, String email) {
-        var user = keyCloakAuthenticationUtil.getUser();
         Space result = getSpace(id);
         var response = convertObject(result, SpaceResponse.class);
         var filteredProjects = getFilteredProjects(email, result.getProjects());
-        response.setProjects(convertList(filteredProjects, ProjectResponse.class));
+        var projectResponse = convertList(filteredProjects, ProjectResponse.class);
+        // Set favorite projects after filtering
+        response.setProjects(favoriteComponent.mapFavoriteProjects(projectResponse));
         response.setIsFavorite(favoriteComponent.getIsFavoriteSpace(id));
         response.setFolders(folderComponent.getFolderResponses(result.getFolders().stream().toList()));
         return response;
@@ -177,7 +188,9 @@ public class SpaceService implements ISpaceService {
 
     @Override
     public SpaceResponse duplicate(Long id) {
-        return convertObject(duplicateComponent.duplicateSpace(id), SpaceResponse.class);
+        var duplicateSpace = duplicateComponent.duplicateSpace(id);
+        notificationUtil.sendEmails(duplicateSpace.getUsers(), NotificationType.space,duplicateSpace.getName(), duplicateSpace.getUrl());
+        return convertObject(duplicateSpace, SpaceResponse.class);
     }
 
     @Override
@@ -185,10 +198,12 @@ public class SpaceService implements ISpaceService {
         Space space = getSpace(spaceId);
         // restrict adding people to space
         checkSpaceCreator(space);
-        var users = this.userRepo.findAllById(userIds);
+        var newUsers = this.userRepo.findAllById(userIds);
         Set<User> existingUsers = new HashSet<>(space.getUsers());
-        existingUsers.addAll(users);
+        existingUsers.addAll(newUsers);
         space.setUsers(existingUsers);
+
+        notificationUtil.sendEmails(new HashSet<>(newUsers), NotificationType.space,space.getName(), space.getUrl());
         this.spaceRepo.save(space);
     }
 
@@ -235,10 +250,18 @@ public class SpaceService implements ISpaceService {
     }
 
     @Override
-    public SpaceResponse getByUrl(Long id, String url) {
+    public SpaceResponse getByUrlAndId(Long id, String url) {
         var result = this.spaceRepo.findByIdAndUrlEqualsIgnoreCase(id, url).orElseThrow(throwNotFoundException(id + ", " + url, SPACE, "ID AND URL"));
         var response = convertObject(result, SpaceResponse.class);
         response.setIsFavorite(favoriteComponent.getIsFavoriteSpace(id));
+        response.setFolders(folderComponent.getFolderResponses(result.getFolders().stream().toList()));
+        return response;
+    }
+    @Override
+    public SpaceResponse getByUrl(String url) {
+        var result = this.spaceRepo.findByUrlEqualsIgnoreCase(url).orElseThrow(throwNotFoundException(url, SPACE, "URL"));
+        var response = convertObject(result, SpaceResponse.class);
+        response.setIsFavorite(favoriteComponent.getIsFavoriteSpace(result.getId()));
         response.setFolders(folderComponent.getFolderResponses(result.getFolders().stream().toList()));
         return response;
     }

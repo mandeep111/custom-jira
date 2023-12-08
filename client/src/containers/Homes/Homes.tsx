@@ -2,39 +2,24 @@ import { Disclosure, Tab } from '@headlessui/react';
 import * as HeroIcons from '@heroicons/react/24/outline';
 import ArrowRightCircleIcon from '@heroicons/react/24/outline/esm/ArrowRightCircleIcon';
 import axios, { AxiosResponse } from 'axios';
-import moment from 'moment';
+import dayjs from 'dayjs';
 import React from 'react';
-import {
-    Calendar,
-    momentLocalizer,
-} from 'react-big-calendar';
+import { Calendar, dayjsLocalizer } from 'react-big-calendar';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { Chart } from 'react-google-charts';
 import { useDispatch, useSelector } from 'react-redux';
+import { Grid } from '../../components/Grid';
 import { MySubTask, MyTask, UserProfileList } from '../../components/UserProfile';
-import { getToken } from '../../redux/Authentication/selectors';
 import { setToggle } from '../../redux/Sidebar/actions';
 import { getToggle } from '../../redux/Sidebar/selectors';
-import { getTheme } from '../../redux/Theme/selectors';
-import { getMySubTasks, getMyTasks, getUserProfiles } from '../../services/UserProfile';
-import { API } from '../../utils/api';
-import { TaskStage } from '../../types/TaskStage';
-import { Task } from '../../types/Task';
-import { SubTask } from '../../types/SubTask';
+import pieOptions from './pie.config';
+import './styles.css';
+import subTaskOptions from './subtask.config';
+import taskOptions from './task.config';
 
-
-interface ContentTaskStage {
-    pageNo: number | 0,
-    pageSize: number | 0,
-    totalElements: number | 0,
-    totalPages?: number,
-    last: true,
-    content: TaskStage[],
-}
-
-interface UserProfile {
+type UserProfile = {
     project_completed: number | null;
     task: number | null;
     projects: number | null;
@@ -44,37 +29,34 @@ interface UserProfile {
 }
 
 const Container = () => {
-    const localizer = momentLocalizer(moment);
-    const token = useSelector(getToken);
-    const config = {
-        headers: {
-            'Authorization': `Bearer ${token!}`
-        }
+
+    const dispatch = useDispatch();
+
+    const toggle = useSelector(getToggle);
+    const handleSidebarToggle = () => {
+        dispatch(setToggle(!toggle));
     };
-    const theme = useSelector(getTheme);
 
     const [tasks, setTasks] = React.useState<Task[]>([]);
-    const [subTasks, setSubTasks] = React.useState<SubTask[]>([]);
+    const [subTasks, setSubTasks] = React.useState<Subtask[]>([]);
     const [taskStages, setTaskStages] = React.useState<TaskStage[]>([]);
+    const [taskStageId, setTaskStageId] = React.useState<number | null>(null);
     const [userProfiles, setUserProfiles] = React.useState<UserProfile>();
 
-    const getAllTaskStage = async () => {
-
+    const fetchTaskStage = async () => {
         try {
-            const response: AxiosResponse<ContentTaskStage> = await axios.get(`${API.TASK_STAGE}/page`, config);
-            const { content }: ContentTaskStage = response.data;
-            // const checkLot: Lot = content.map((templateId: productVariantList) => response.data.content
+            const response: AxiosResponse<APIResponse<TaskStage>> = await axios.get(`${SERVER.API.TASKSTAGE}/page`);
+            const { content } = response.data;
             setTaskStages(content);
-
         } catch (error) {
-            throw new Error(`An error occurred: ${error as string}`);
+            throw new Error(`${error as string}`);
         }
     };
 
     const fetchMyTasks = async () => {
         try {
-            const response: Task[] = await getMyTasks(config);
-            setTasks(response);
+            const response: AxiosResponse<Task[]> = await axios.get(`${SERVER.API.USERPROFILE}/my-tasks`);
+            setTasks(response.data);
         } catch (error) {
             throw new Error(error as string);
         }
@@ -82,8 +64,8 @@ const Container = () => {
 
     const fetchMySubTasks = async () => {
         try {
-            const response: SubTask[] = await getMySubTasks(config);
-            setSubTasks(response);
+            const response: AxiosResponse<Subtask[]> = await axios.get(`${SERVER.API.USERPROFILE}/my-sub-tasks`);
+            setSubTasks(response.data);
         } catch (error) {
             throw new Error(error as string);
         }
@@ -91,130 +73,69 @@ const Container = () => {
 
     const fetchUserProfile = async () => {
         try {
-            const response: UserProfile = await getUserProfiles(config);
-            setUserProfiles(response);
+            const response: AxiosResponse<UserProfile> = await axios.get(`${SERVER.API.USERPROFILE}`);
+            setUserProfiles(response.data);
         } catch (error) {
             throw new Error(error as string);
         }
     };
 
-
-
-    const data = [
-        ['Name', 'Task', 'Done'],
-        ['Task', userProfiles?.task, userProfiles?.task_completed],
-    ];
-
-    const options = {
-        title: 'My Tasks',
-        vAxis: { title: 'Value', textStyle: { color: theme === 'dark' ? 'white' : 'black', }, },
-        hAxis: { title: 'Tasks', textStyle: { color: theme === 'dark' ? 'white' : 'black', }, },
-        seriesType: 'bars',
-        backgroundColor: theme === 'dark' ? 'black' : 'white',
-        colors: ['red', 'green'], // Specify custom colors for the series here
-    };
-
-    const dataSubTask = [
-        ['Name', 'SubTask', 'Done'],
-        ['SubTask', userProfiles?.subTasks, userProfiles?.sub_task_completed],
-    ];
-
-
-
-    const optionsSubTask = {
-        title: 'My SubTasks',
-        vAxis: { title: 'Value', textStyle: { color: theme === 'dark' ? 'white' : 'black', }, },
-        hAxis: { title: 'Sub    Tasks', textStyle: { color: theme === 'dark' ? 'white' : 'black', }, },
-        seriesType: 'bars',
-        backgroundColor: theme === 'dark' ? 'black' : 'white',
-        colors: ['red', 'green'], // Specify custom colors for the series here
-    };
-
-    const [taskStageId, setTaskStageId] = React.useState<number | null>(null);
-
     const returnItemsForColumn = (columnId: number | null) => {
         if (columnId !== null) {
-            return tasks
-                .filter((item) => item.taskStageId === columnId)
-                .map((item, index) => (
-                    <MyTask
-                        key={item.id}
-                        name={item.name}
-                        task={item}
-                        currentColumnName={item.taskStageId}
-                        index={index}
-                        fetchingData={fetchMyTasks}
-                    />
-                ));
+            return tasks.filter((item) => item.taskStageId === columnId).map((item, index) => (
+                <MyTask
+                    key={index}
+                    task={item}
+                    fetchingData={fetchMyTasks}
+                />
+            ));
         }
     };
 
     const returnSubItemsForColumn = () => {
-        return subTasks
-            .map((item, index) => (
-                <MySubTask
-                    key={item.id}
-                    subTask={item}
-                    // setItems={setSubTasks}
-                    index={index}
-                // fetchingData={fetchMySubTasks}
-                />
-            ));
-    };
-    const dispatch = useDispatch();
-    const toggle = useSelector(getToggle);
-    const handleSidebarToggle = () => {
-        dispatch(setToggle(!toggle));
+        return subTasks.map((item, index) => (
+            <MySubTask
+                key={index}
+                subtask={item}
+            />
+        ));
     };
 
-    const events = tasks.map((task) => ({
+    const calendarEvents = tasks.map((task) => ({
         title: task.name,
         start: new Date(task.start!),
         end: new Date(task.end!),
     }));
 
-    // const eventStyleGetter = (event, start, end, isSelected) => {
-    //     const style = {
-    //         backgroundColor: 'your-color-here',
-    //         color: 'your-text-color-here',
-    //         // อื่น ๆ ตามที่คุณต้องการ
-    //     };
-    //     return {
-    //         style
-    //     };
-    // };
-
-
     React.useEffect(() => {
         void fetchMyTasks();
         void fetchMySubTasks();
-        void getAllTaskStage();
+        void fetchTaskStage();
         void fetchUserProfile();
-    }, [token]);
+    }, []);
 
     return (
         <React.Fragment>
             <Tab.Group>
-                <Tab.List
-                    className="flex flex-row flex-nowrap border-b dark:border-default bg-default">
-                    <div className="flex flex-row flex-nowrap border-b dark:border-default bg-default">
+                <Tab.List className="flex flex-row border-b flex-nowrap dark:border-default bg-default">
+                    <div className="flex flex-row border-b flex-nowrap dark:border-default bg-default">
                         <button
                             type="button"
                             className={`text-default px-3 ${toggle ? '' : 'hidden'}`}
                             onClick={handleSidebarToggle}
                         >
-                            <HeroIcons.ChevronDoubleRightIcon className="icon-x20 mr-0" />
+                            <HeroIcons.ChevronDoubleRightIcon className="mr-0 icon-x20" />
                         </button>
                         <Tab className={({ selected }) => `flex items-center focus:outline-none flex-nowrap px-3 border-b-2 border-b-transparent pb-3.5 pt-4 text-xs text-default uppercase hover:border-b-inherit ${selected ? '!text-pink-400 border-b-pink-500' : ''}`}>
-                            <div className="inline-flex flex-nowrap px-3 border-b-2 border-b-transparent pb-3 pt-4 text-xs text-default uppercase cursor-default select-none">
-                                <span className="text-default flex items-center font-bold">
+                            <div className="inline-flex px-3 pt-4 pb-3 text-xs uppercase border-b-2 cursor-default select-none flex-nowrap border-b-transparent text-default">
+                                <span className="flex items-center font-bold text-default">
                                     {'Home'}
                                 </span>
                             </div>
                         </Tab>
                         <Tab className={({ selected }) => `flex items-center focus:outline-none flex-nowrap px-3 border-b-2 border-b-transparent pb-3.5 pt-4 text-xs text-default uppercase hover:border-b-inherit ${selected ? '!text-pink-400 border-b-pink-500' : ''}`}>
-                            <div className="inline-flex flex-nowrap px-3 border-b-2 border-b-transparent pb-3 pt-4 text-xs text-default uppercase cursor-default select-none">
-                                <span className="text-default flex items-center font-bold">
+                            <div className="inline-flex px-3 pt-4 pb-3 text-xs uppercase border-b-2 cursor-default select-none flex-nowrap border-b-transparent text-default">
+                                <span className="flex items-center font-bold text-default">
                                     {'Calendar'}
                                 </span>
                             </div>
@@ -222,166 +143,163 @@ const Container = () => {
                     </div>
                 </Tab.List>
                 <Tab.Panels>
-                    <Tab.Panel>
-
-                        <div className="bg-default p-4 sm:px-8 sm:pt-6 sm:pb-8 lg:p-4 xl:px-8 xl:pt-6 xl:pb-8 grid grid-cols-1 sm:grid-cols-1 lg:grid-cols-1 xl:grid-cols-2 gap-4 text-sm leading-6">
-
-                            <div className="grid grid-cols-1  ">
-                                <span className="group-hover:text-white font-semibold text-default text-3xl">
-                                    {'My Work'}
-                                </span>
-                                <div className="grid sm:block lg:block xl:block mt-8 mb-5  border-2 border-default">
+                    <Tab.Panel className="p-5">
+                        <Grid column={12} gap={5} className="py-5">
+                            <Grid.Column sm={12} md={12} lg={12} xl={6} xxl={6}>
+                                <div className="mb-10 border border-default">
                                     <Disclosure>
                                         {({ open }) => (
                                             <React.Fragment>
-                                                <div className="inline-flex flex-nowrap items-center rounded transition duration-200  hover:bg-default-faded w-full">
+                                                <div className="inline-flex items-center w-full transition duration-200 rounded flex-nowrap">
                                                     <Disclosure.Button>
-                                                        <ArrowRightCircleIcon className={`${open ? 'rotate-90 transform' : ''}     inline-flex icon-x24 text-default ml-3 mt-5 mb-2  `} />
+                                                        <div className="flex items-end px-3 py-5">
+                                                            <ArrowRightCircleIcon className={`${open ? 'rotate-90 transform' : ''} icon-x24 text-default`} />
+                                                            <span className="text-xl font-semibold text-default">{'Task'}</span>
+                                                        </div>
                                                     </Disclosure.Button>
-                                                    <span className="group-hover:text-blue-200 text-default font-semibold text-xl mt-5 mb-2">{'Task'}</span>
                                                 </div>
                                                 <Disclosure.Panel>
                                                     <Tab.Group>
-                                                        <Tab.List
-                                                            className="flex flex-row flex-nowrap border-b dark:border-default bg-default">
-                                                            <div className="grid sm:block lg:grid-cols-5 xl:grid-cols-5 px-3 border-b-2 border-b-transparent pb-3 pt-4 text-xs text-default uppercase cursor-default select-none">
+                                                        <Tab.List className="flex justify-center w-full flex-nowrap border-default bg-default">
+                                                            <div className="text-xs uppercase cursor-pointer select-none border-b-transparent text-default">
                                                                 <div className="flex flex-wrap">
-                                                                    {
-                                                                        <DndProvider backend={HTML5Backend}>
-                                                                            {taskStages
-                                                                                .map((taskStage, index) => (
-                                                                                    <Tab
-                                                                                        key={index}
-                                                                                        className={({ selected }) => `flex items-start focus:outline-none flex-nowrap px-3 border-b-2 border-b-transparent pb-3.5 pt-4 text-xs text-default bg-default uppercase hover: ${selected ? ' border-b-blue-600 border-b-4 border-width: 4px' : ''}`}
-                                                                                        onClick={() => setTaskStageId(taskStage.id)}
-                                                                                    >
-                                                                                        <UserProfileList
-                                                                                            title={taskStage.name!}
-                                                                                            state={taskStage.id}
-                                                                                            color={taskStage.color!}
-                                                                                            className="border-t-4 border-r border-r-default">
-                                                                                        </UserProfileList>
-                                                                                    </Tab>
-                                                                                ))}
-                                                                        </DndProvider>
-                                                                    }
+                                                                    <DndProvider backend={HTML5Backend}>
+                                                                        {taskStages.map((taskStage, index) => (
+                                                                            <Tab
+                                                                                key={index}
+                                                                                className="flex justify-center text-xs uppercase border-b-2 flex-nowrap border-b-transparent text-default"
+                                                                                onClick={() => setTaskStageId(taskStage.id)}
+                                                                            >
+                                                                                <UserProfileList
+                                                                                    title={taskStage.name!}
+                                                                                    state={taskStage.id}
+                                                                                    color={taskStage.color!}
+                                                                                    className="border-t-4 border-b border-default hover:text-pink-400">
+                                                                                </UserProfileList>
+                                                                            </Tab>
+                                                                        ))}
+                                                                    </DndProvider>
                                                                 </div>
                                                             </div>
                                                         </Tab.List>
-                                                        <Tab.Panels className="mt-5 ">
+                                                        <Tab.Panels className="mt-5">
                                                             {taskStages.map((_taskStage, index) => (
                                                                 <Tab.Panel key={index}>
                                                                     <DndProvider backend={HTML5Backend}>
                                                                         <React.Fragment key={index}>
                                                                             <div style={{ maxHeight: '30em', overflowY: 'auto' }}>
-                                                                                {returnItemsForColumn(taskStageId)} {/* Use the corresponding taskStageId */}
+                                                                                {returnItemsForColumn(taskStageId)}
                                                                             </div>
                                                                         </React.Fragment>
                                                                     </DndProvider>
                                                                 </Tab.Panel>
                                                             ))}
                                                         </Tab.Panels>
-
                                                     </Tab.Group>
                                                 </Disclosure.Panel>
                                             </React.Fragment>
-
                                         )}
                                     </Disclosure>
                                 </div>
-                                <div className="grid sm:grid lg:grid xl:block grid-cols-1 grid-rows-1 mt-8 mb-5 border-default border-2">
+                                <div className="border border-default">
                                     <Disclosure>
                                         {({ open }) => (
                                             <React.Fragment>
-                                                <div className="inline-flex flex-nowrap items-center rounded transition duration-200  hover:bg-default-faded w-full">
+                                                <div className="inline-flex items-center w-full transition duration-200 rounded flex-nowrap">
                                                     <Disclosure.Button>
-                                                        <ArrowRightCircleIcon className={`${open ? 'rotate-90 transform' : ''}     inline-flex icon-x24 text-default ml-3 mt-5 mb-5 `} />
+                                                        <div className="flex items-end px-3 py-5">
+                                                            <ArrowRightCircleIcon className={`${open ? 'rotate-90 transform' : ''} icon-x24 text-default`} />
+                                                            <span className="text-xl font-semibold text-default">{'SubTask'}</span>
+                                                        </div>
                                                     </Disclosure.Button>
-                                                    <span className="group-hover:text-blue-200 text-default font-semibold text-xl mt-5 mb-5">{'SubTask'}</span>
                                                 </div>
                                                 <Disclosure.Panel>
-                                                    {
-                                                        <DndProvider backend={HTML5Backend}>
-                                                            <React.Fragment>
-                                                                <div style={{ maxHeight: '30em', overflowY: 'auto' }}>
-                                                                    {returnSubItemsForColumn()}
-                                                                </div>
-                                                            </React.Fragment>
-                                                        </DndProvider>
-                                                    }
+                                                    <DndProvider backend={HTML5Backend}>
+                                                        <React.Fragment>
+                                                            <div style={{ maxHeight: '30em', overflowY: 'auto' }}>
+                                                                {returnSubItemsForColumn()}
+                                                            </div>
+                                                        </React.Fragment>
+                                                    </DndProvider>
                                                 </Disclosure.Panel>
                                             </React.Fragment>
-
                                         )}
                                     </Disclosure>
                                 </div>
-                            </div>
-                            <div className="flex flex-row flex-nowrap border-b dark:border-default bg-default">
-                                <Chart
-                                    chartType="PieChart"
-                                    data={[
-                                        ['Profile', 'Completed'],
-                                        ['Projects', userProfiles?.projects],
-                                        ['Project_Completed', userProfiles?.project_completed],
-                                        ['Task', userProfiles?.task],
-                                        ['Task_Completed', userProfiles?.task_completed],
-                                        ['SubTasks', userProfiles?.subTasks],
-                                        ['SuTask_Completed', userProfiles?.sub_task_completed],
-                                    ]}
-                                    options={{
-                                        title: 'My Project',
-                                        is3D: true,
-                                        backgroundColor: theme === 'dark' ? 'black' : 'white',
-
-                                    }}
-                                    width={'100%'}
-                                    height={'400px'}
-                                    className="bg-default  text-default"
-                                />
-                            </div>
-                        </div>
-
-                        <div className="bg-default   p-4 sm:px-8 sm:pt-6 sm:pb-8 lg:p-4 xl:px-8 xl:pt-6 xl:pb-8 grid  sm:grid-cols-1 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-2 gap-2 text-sm leading-6">
-                            <div className="flex flex-row flex-nowrap border-b dark:border-default bg-default">
-                                <Chart
-                                    chartType="ComboChart"
-                                    width={'100%'}
-                                    height={'400px'}
-                                    data={data}
-                                    options={options}
-                                    className={'bg-default'}
-                                />
-                            </div>
-                            <div className="flex flex-row flex-nowrap  border-b dark:border-default bg-default">
-                                <Chart
-                                    chartType="ComboChart"
-                                    width={'100%'}
-                                    height={'400px'}
-                                    data={dataSubTask}
-                                    options={optionsSubTask}
-                                />
-                            </div>
-                        </div>
+                            </Grid.Column>
+                            <Grid.Column sm={12} md={12} lg={12} xl={6} xxl={6}>
+                                <div className="border flex-nowrap border-default bg-default">
+                                    <Chart
+                                        graphID="pieChart"
+                                        chartType="PieChart"
+                                        data={[
+                                            ['Profile', 'Completed'],
+                                            ['Projects', userProfiles?.projects],
+                                            ['Project_Completed', userProfiles?.project_completed],
+                                            ['Task', userProfiles?.task],
+                                            ['Task_Completed', userProfiles?.task_completed],
+                                            ['SubTasks', userProfiles?.subTasks],
+                                            ['SuTask_Completed', userProfiles?.sub_task_completed],
+                                        ]}
+                                        options={pieOptions}
+                                        width={'100%'}
+                                        height={'400px'}
+                                    />
+                                </div>
+                            </Grid.Column>
+                        </Grid>
+                        <Grid column={12} gap={5}>
+                            <Grid.Column sm={12} md={12} lg={12} xl={6} xxl={6}>
+                                <div className="border flex-nowrap border-default bg-default">
+                                    <Chart
+                                        graphID="taskChart"
+                                        chartType="ComboChart"
+                                        width={'100%'}
+                                        height={'400px'}
+                                        data={[
+                                            ['Name', 'Task', 'Done'],
+                                            ['Task', userProfiles?.task, userProfiles?.task_completed],
+                                        ]}
+                                        options={taskOptions}
+                                        className={'bg-default'}
+                                    />
+                                </div>
+                            </Grid.Column>
+                            <Grid.Column sm={12} md={12} lg={12} xl={6} xxl={6}>
+                                <div className="border flex-nowrap border-default bg-default">
+                                    <Chart
+                                        graphID="subTaskChart"
+                                        chartType="ComboChart"
+                                        width={'100%'}
+                                        height={'400px'}
+                                        data={[
+                                            ['Name', 'SubTask', 'Done'],
+                                            ['SubTask', userProfiles?.subTasks, userProfiles?.sub_task_completed],
+                                        ]}
+                                        options={subTaskOptions}
+                                    />
+                                </div>
+                            </Grid.Column>
+                        </Grid>
                     </Tab.Panel>
                     <Tab.Panel>
                         <DndProvider backend={HTML5Backend}>
-                            <React.Fragment>
-                                <div className="border-b dark:border-default bg-default text-default">
-                                    <Calendar
-                                        localizer={localizer}
-                                        events={events}
-                                        startAccessor="start"
-                                        endAccessor="end"
-                                        style={{ height: 500 }}
-                                        // eventStyleGetter
-                                    />
-                                </div>
-                            </React.Fragment>
+                            <div
+                                className="border-b dark:border-default bg-default text-default"
+                                style={{ height: 'calc(100vh - 80px)' }}
+                            >
+                                <Calendar
+                                    localizer={dayjsLocalizer(dayjs)}
+                                    events={calendarEvents}
+                                    startAccessor="start"
+                                    endAccessor="end"
+                                />
+                            </div>
                         </DndProvider>
                     </Tab.Panel>
                 </Tab.Panels>
-            </Tab.Group >
-        </React.Fragment >
+            </Tab.Group>
+        </React.Fragment>
     );
 
 };

@@ -70,7 +70,8 @@ public class UserService implements IUserService {
                     .password(password)
                     .email(request.getEmail())
                     .build();
-            keyCloakComponent.signup(mapToKeycloakUser(user, request.getPassword()), jwt);
+
+            keyCloakComponent.signup(mapToKeycloakUser(user, request.getPassword(), request.getDefaultPage()), jwt);
             this.userRepo.save(user);
         } catch (JsonProcessingException | UnirestException e) {
             throw new PreconditionFailedException(e.getMessage());

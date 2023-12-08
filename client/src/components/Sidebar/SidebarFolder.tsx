@@ -3,7 +3,6 @@ import { useDispatch } from 'react-redux';
 import { Link } from 'react-router-dom';
 import { setOpenFormOpenFolder } from '../../redux/Dialog/actions';
 import { setFolderId, setFolderName, setMouseX, setMouseY, setSpaceId, setSpaceName, setSpaceUrl } from '../../redux/Sidebar/actions';
-import { Space } from '../../types/Space';
 
 interface Props {
     space: Space;
@@ -30,8 +29,13 @@ const Component = ({ space, folderRef }: Props) => {
                             dispatch(setFolderName(folder.name));
                             const folderRect = folderRef.current?.getBoundingClientRect();
                             if (folderRect) {
-                                dispatch(setMouseX(event.clientX - folderRect.left));
-                                dispatch(setMouseY(event.clientY - folderRect.top));
+                                let calculatedMouseX = event.clientX - folderRect.left;
+                                let calculatedMouseY = event.clientY - folderRect.top;
+                    
+                                calculatedMouseY = Math.min(calculatedMouseY, -240);
+                    
+                                dispatch(setMouseX(calculatedMouseX));
+                                dispatch(setMouseY(calculatedMouseY));
                             }
                         }}
                         onClick={() => {
@@ -43,9 +47,9 @@ const Component = ({ space, folderRef }: Props) => {
                             dispatch(setOpenFormOpenFolder(true));
                         }}
                     >
-                        <Link to="#" className="flex items-center ml-10 w-full">
+                        <Link to="#" className="flex items-center w-full ml-10">
                             <div className="flex items-center">
-                                <span className="-ml-1 mr-1">{'📁'}</span>
+                                <span className="mr-1 -ml-1">{'📁'}</span>
                                 <span className="text-default">
                                     {folder.name}
                                 </span>

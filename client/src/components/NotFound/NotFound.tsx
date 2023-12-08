@@ -1,6 +1,6 @@
+import { ChevronLeftIcon, ExclamationCircleIcon } from '@heroicons/react/24/outline';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeftIcon, ExclamationCircleIcon } from '@heroicons/react/24/outline';
 
 const Component = () => {
 

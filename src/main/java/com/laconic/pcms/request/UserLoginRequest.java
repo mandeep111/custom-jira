@@ -21,4 +21,5 @@ public class UserLoginRequest {
     @NotNull(message = NAME_MESSAGE)
     @NotEmpty(message = NAME_MESSAGE)
     private String fullName;
+    private String defaultPage;
 }

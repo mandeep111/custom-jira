@@ -10,7 +10,7 @@ const Component = ({ color, onClick }: Props) => {
 
     return (
         <React.Fragment>
-            <div className="w-full max-w-sm mt-5">
+            <div className="w-full max-w-sm">
                 <Popover className="relative">
                     {({ close }) => (
                         <React.Fragment>

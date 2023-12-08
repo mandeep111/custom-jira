@@ -26,4 +26,8 @@ public abstract class AppMessages {
 
     // not present
     public static final String USER_NOT_PRESENT = "User is not present in this %s";
+
+    // notification messages
+    public static final String EMAIL_BODY = "Dear %s, \nA new [%s] is assigned to you."; // provide full name, task or subtask or project or space name
+    public static final String EMAIL_SUBJECT = "New %s Alert";
 }

@@ -1,54 +1,29 @@
 import { BackspaceIcon } from '@heroicons/react/20/solid';
-import moment from 'moment';
 import React from 'react';
-import { momentLocalizer } from 'react-big-calendar';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
-import { useSelector } from 'react-redux';
 import { Link, useParams } from 'react-router-dom';
 import { DataTableTask } from '../../components/DataTable';
 import { Grid } from '../../components/Grid';
-import { getToken } from '../../redux/Authentication/selectors';
-import Http from '../../services/Http';
-import { API } from '../../utils/api';
-import { Task } from '../../types/Task';
-import { SubTask } from '../../types/SubTask';
-import { Project } from '../../types/Project';
+import axios, { AxiosResponse } from 'axios';
 
 const Container = () => {
 
     const { projectId, projectUrl } = useParams();
-    const localizer = momentLocalizer(moment);
-    const token = useSelector(getToken);
 
     const [tasks, setTasks] = React.useState<Task[]>([]);
-    const [subTasks, setSubTasks] = React.useState<SubTask[]>([]);
-    const [project, setProject] = React.useState<Project[]>([]);
     const [taskList, setTaskList] = React.useState<Task[]>([]);
     const [projectById, setProjectById] = React.useState<Project>();
 
 
     const fetchTaskLists = async () => {
         try {
-            const response: Project = await Http.getById(`${API.PROJECT}/${projectId!}`);
-            setProjectById(response);
-            setTaskList(response.tasks as Task[]);
+            const response: AxiosResponse<Project> = await axios.get(`${SERVER.API.PROJECT}/${projectId!}`);
+            setProjectById(response.data);
+            setTaskList(response.data.tasks as Task[]);
         } catch (error) {
             throw new Error(error as string);
         }
     };
-
-    // const data = [
-    //     ['Name', 'Task', 'Done'],
-    //     ['Task', userProfiles?.task, userProfiles?.task_completed],
-    // ];
-
-    // const options = {
-    //     title: 'My Tasks',
-    //     vAxis: { title: 'Value' },
-    //     hAxis: { title: 'Tasks' },
-    //     seriesType: 'bars',
-    //     colors: ['red', 'green'], // Specify custom colors for the series here
-    // };
 
     const columns = [
         { Header: 'NO', accessor: 'no', },
@@ -75,15 +50,15 @@ const Container = () => {
 
     return (
         <React.Fragment>
-            <div className="bg-default p-4 sm:px-8 sm:pt-6 sm:pb-8 lg:p-4 xl:px-8 xl:pt-6 xl:pb-8 grid text-sm leading-6">
-                <Link to="/report" className="flex items-center ml-10 w-full">
+            <div className="grid p-4 text-sm leading-6 bg-default sm:px-8 sm:pt-6 sm:pb-8 lg:p-4 xl:px-8 xl:pt-6 xl:pb-8">
+                <Link to="/report" className="flex items-center w-full ml-10">
                     <div className="flex">
-                        <BackspaceIcon className="icon-x24 mt-1 text-red-600" />
+                        <BackspaceIcon className="mt-1 text-red-600 icon-x24" />
                         <div className="text-2xl text-red-600"> {'Back to Project'} </div>
                     </div>
                 </Link>
-                {/* <div className="bg-default   p-4 sm:px-8 sm:pt-6 sm:pb-8 lg:p-4 xl:px-8 xl:pt-6 xl:pb-8 grid  sm:grid-cols-1 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-2 gap-2 text-sm leading-6">
-                            <div className="flex flex-row flex-nowrap border-b dark:border-default bg-default">
+                {/* <div className="grid gap-2 p-4 text-sm leading-6 bg-default sm:px-8 sm:pt-6 sm:pb-8 lg:p-4 xl:px-8 xl:pt-6 xl:pb-8 sm:grid-cols-1 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-2">
+                            <div className="flex flex-row border-b flex-nowrap dark:border-default bg-default">
                                 <Chart
                                     chartType="PieChart"
                                     data={[
@@ -103,7 +78,7 @@ const Container = () => {
                                     height={'400px'}
                                 />
                             </div>
-                            <div className="flex flex-row flex-nowrap border-b dark:border-default bg-default">
+                            <div className="flex flex-row border-b flex-nowrap dark:border-default bg-default">
 
                                 <Chart
                                     chartType="ComboChart"
@@ -115,7 +90,7 @@ const Container = () => {
                             </div>
                         </div> */}
 
-                <div className="text-2xl p-2 ml-5 text-default">{'All Task In Project Name : '}{projectById?.name}</div>
+                <div className="p-2 ml-5 text-2xl text-default">{'All Task In Project Name : '}{projectById?.name}</div>
                 <Grid column={12} gap={1}>
                     <Grid.Column sm={12} md={12} lg={12} xl={12} xxl={12} className="p-5 m-5 bg-default " >
                         <DataTableTask columns={columns} task={taskList} />

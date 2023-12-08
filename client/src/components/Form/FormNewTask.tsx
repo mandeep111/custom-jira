@@ -1,6 +1,6 @@
 import { Dialog, Menu, Transition } from '@headlessui/react';
 import * as HeroIcons from '@heroicons/react/24/outline';
-import { FlagIcon } from '@heroicons/react/24/solid';
+import axios, { AxiosResponse } from 'axios';
 import React from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useParams } from 'react-router-dom';
@@ -9,12 +9,9 @@ import { toast } from 'react-toastify';
 import { Priority } from '../../enum/Priority';
 import { setOpenFormNewTask } from '../../redux/Dialog/actions';
 import { getOpenFormNewTask } from '../../redux/Dialog/selectors';
-import Http from '../../services/Http';
-import { Assign } from '../../types/Assign';
-import { Task } from '../../types/Task';
-import { User } from '../../types/User';
-import { API } from '../../utils/api';
+import { getSpaceId } from '../../redux/Sidebar/selectors';
 import { Grid } from '../Grid';
+import { MenuPriority } from '../Menu';
 import { PopoverColor } from '../Popover';
 
 interface Props {
@@ -42,23 +39,23 @@ const initialDateState: DateValueType = {
 
 const Component = ({ fetchingData }: Props) => {
 
-    const { projectId, spaceId } = useParams();
+    const { projectId } = useParams();
 
     const dispatch = useDispatch();
+    const spaceId = useSelector(getSpaceId);
     const isOpen = useSelector(getOpenFormNewTask);
 
     const [userList, setUserList] = React.useState<User[]>([]);
     const [assign, setAssign] = React.useState<Assign[]>([]);
     const [priority, setPriority] = React.useState(Priority.LOW);
-    const [priorityColor, setPriorityColor] = React.useState('#27AE60');
     const [date, setDate] = React.useState<DateValueType>(initialDateState);
 
     const [task, setTask] = React.useState<Task>(initialTaskState);
 
     const fetchUserList = async () => {
         try {
-            const response: User[] = await Http.getById(`${API.USER}/all-by-space/${spaceId!}`);
-            setUserList(response);
+            const response: AxiosResponse<User[]> = await axios.get(`${SERVER.API.USER}/all-by-space/${spaceId!}`);
+            setUserList(response.data);
         } catch (error) {
             throw new Error(error as string);
         }
@@ -68,6 +65,7 @@ const Component = ({ fetchingData }: Props) => {
         setTask(initialTaskState);
         setAssign([]);
         setDate(initialDateState);
+        setPriority(Priority.LOW);
         dispatch(setOpenFormNewTask(false));
     };
 
@@ -89,38 +87,18 @@ const Component = ({ fetchingData }: Props) => {
         }
     };
 
-    const handleSelectPriority = () => {
-        const priorityArray = Object.values(Priority);
-        const currentIndex = priorityArray.indexOf(priority);
-        const nextIndex = (currentIndex + 1) % priorityArray.length;
-        const nextPriority = priorityArray[nextIndex];
-        setPriority(nextPriority);
-        switch (nextPriority) {
-            case Priority.URGENT:
-                setPriorityColor('#C0392B');
-                break;
-            case Priority.HIGH:
-                setPriorityColor('#F1C40F');
-                break;
-            case Priority.MEDIUM:
-                setPriorityColor('#2980B9');
-                break;
-            case Priority.LOW:
-                setPriorityColor('#27AE60');
-                break;
-            default:
-                setPriorityColor('#27AE60');
-        }
-        toast.dismiss();
-        toast.info(nextPriority, {
-            icon: '🏳️',
-        });
-    };
-
     const handleFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
+        if (date === null || date.startDate === null || date.endDate === null) {
+            toast.error('Please select date');
+            return;
+        }
+        if (assign === null || assign.length === 0) {
+            toast.error('Please select assign');
+            return;
+        }
         try {
-            await Http.create(API.TASK, task);
+            await axios.post(SERVER.API.TASK, task);
             await fetchingData();
         } catch (error) {
             throw new Error(error as string);
@@ -130,7 +108,12 @@ const Component = ({ fetchingData }: Props) => {
     };
 
     React.useEffect(() => {
-        void fetchUserList();
+        spaceId && void fetchUserList();
+    }, [spaceId]);
+
+    console.log(spaceId);
+
+    React.useEffect(() => {
         setTask((prevState) => ({
             ...prevState,
             projectId: parseInt(projectId!),
@@ -157,7 +140,7 @@ const Component = ({ fetchingData }: Props) => {
                         <div className="backdrop" />
                     </Transition.Child>
                     <div className="fixed inset-0 overflow-y-auto">
-                        <div className="flex min-h-full items-center justify-center p-4 text-center">
+                        <div className="flex items-center justify-center min-h-full p-4 text-center">
                             <Transition.Child
                                 as={React.Fragment}
                                 enter="ease-out duration-300"
@@ -167,15 +150,15 @@ const Component = ({ fetchingData }: Props) => {
                                 leaveFrom="opacity-100 scale-100"
                                 leaveTo="opacity-0 scale-95"
                             >
-                                <Dialog.Panel className="w-full transform rounded-lg bg-default p-6 text-left align-middle shadow-lg transition-all text-default max-w-xl">
+                                <Dialog.Panel className="w-full max-w-xl p-6 text-left align-middle transition-all transform rounded-lg shadow-lg bg-default text-default">
                                     <Dialog.Title
                                         as="h3"
-                                        className="text-lg leading-6 text-default mb-2 font-bold"
+                                        className="mb-2 text-lg font-bold leading-6 text-default"
                                     >
                                         {'Create new Task'}
                                         <button
                                             type="button"
-                                            className="text-default float-right"
+                                            className="float-right text-default"
                                             onClick={handleClose}
                                         >
                                             <HeroIcons.XMarkIcon className="icon-x16" />
@@ -187,9 +170,7 @@ const Component = ({ fetchingData }: Props) => {
                                             <Grid.Column sm={12} md={12} lg={12} xl={12} xxl={12}>
                                                 <div className="flex justify-between">
                                                     <PopoverColor color={task.color} onClick={handleColorChange} />
-                                                    <button type="button" className="text-default" onClick={handleSelectPriority}>
-                                                        <FlagIcon className="icon-x20" style={{ color: priorityColor }} title={priority} />
-                                                    </button>
+                                                    <MenuPriority priority={priority} setPriority={setPriority} />
                                                 </div>
                                             </Grid.Column>
                                         </Grid>
@@ -227,7 +208,7 @@ const Component = ({ fetchingData }: Props) => {
                                                         //     apply: 'AText'
                                                         // }
                                                     }}
-                                                    readOnly
+                                                    readOnly={false}
                                                 />
                                             </Grid.Column>
                                         </Grid>
@@ -235,10 +216,10 @@ const Component = ({ fetchingData }: Props) => {
                                             <Grid.Column sm={12} md={12} lg={12} xl={12} xxl={12}>
                                                 <input
                                                     type="text"
-                                                    maxLength={32}
+                                                    maxLength={255}
                                                     value={task.name || ''}
                                                     placeholder="Task name"
-                                                    className="flex w-full bg-transparent text-xl outline-none text-default border-b border-transparent py-2 hover:border-b hover:border-default focus:border-b focus:border-blue-300"
+                                                    className="flex w-full py-2 text-xl bg-transparent border-b border-transparent outline-none text-default hover:border-b hover:border-default focus:border-b focus:border-blue-300"
                                                     autoComplete="off"
                                                     onChange={(event) => setTask({ ...task, name: event.target.value })}
                                                     required
@@ -250,7 +231,7 @@ const Component = ({ fetchingData }: Props) => {
                                                 <Menu as="div" className="relative inline-block text-left">
                                                     <div>
                                                         <Menu.Button className="flex items-center">
-                                                            <HeroIcons.UserPlusIcon className="icon-x20 mt-5" fill="transparent" />
+                                                            <HeroIcons.UserPlusIcon className="mt-5 icon-x20" fill="transparent" />
                                                         </Menu.Button>
                                                     </div>
                                                     <Transition
@@ -262,15 +243,15 @@ const Component = ({ fetchingData }: Props) => {
                                                         leaveFrom="transform opacity-100 scale-100"
                                                         leaveTo="transform opacity-0 scale-95"
                                                     >
-                                                        <Menu.Items className="absolute mt-2 w-64 origin-top-left divide-y divide-gray-100 rounded-md bg-default shadow-lg border border-default">
-                                                            <div className="px-1 py-1 max-h-40 overflow-y-scroll">
+                                                        <Menu.Items className="absolute w-64 mt-2 origin-top-left border divide-y divide-gray-100 rounded-md shadow-lg bg-default border-default">
+                                                            <div className="px-1 py-1 overflow-y-scroll max-h-40">
                                                                 <React.Fragment>
                                                                     {userList.map((data, index) => (
                                                                         <Menu.Item key={index}>
                                                                             {() => (
                                                                                 <React.Fragment>
                                                                                     <div
-                                                                                        className="group text-default flex w-full items-center rounded-md px-2 py-2 text-sm hover:bg-default-faded cursor-pointer"
+                                                                                        className="flex items-center w-full px-2 py-2 text-sm rounded-md cursor-pointer group text-default hover:bg-default-faded"
                                                                                         onClick={() => handleAssignClick(data.id)}
                                                                                     >
                                                                                         {data.fullName}
@@ -311,7 +292,7 @@ const Component = ({ fetchingData }: Props) => {
                                             <Grid.Column sm={12} md={12} lg={12} xl={12} xxl={12}>
                                                 <textarea
                                                     value={task.description || ''}
-                                                    className="flex w-full bg-transparent outline-none text-default border-b border-transparent py-2 hover:border-b hover:border-default focus:border-b focus:border-blue-300"
+                                                    className="flex w-full py-2 bg-transparent border-b border-transparent outline-none text-default hover:border-b hover:border-default focus:border-b focus:border-blue-300"
                                                     placeholder="Write something about this task..."
                                                     rows={5}
                                                     onChange={(event) => setTask({ ...task, description: event.target.value })}
@@ -320,7 +301,7 @@ const Component = ({ fetchingData }: Props) => {
                                         </Grid>
                                         <Grid column={12} gap={1} className="mt-5 text-center">
                                             <Grid.Column sm={12} md={12} lg={12} xl={12} xxl={12}>
-                                                <button type="submit" className="button w-full bg-pink-400 hover:bg-pink-500 focus:bg-pink-500 text-white">{'Create'}</button>
+                                                <button type="submit" className="w-full text-white bg-pink-400 button hover:bg-pink-500 focus:bg-pink-500">{'Create'}</button>
                                             </Grid.Column>
                                         </Grid>
                                     </form>

@@ -7,6 +7,8 @@ const initialState = {
     projectId: null,
     projectUrl: '',
     projectName: '',
+    favoriteSpace: false,
+    favoriteProject: false,
     folderId: null,
     folderName: '',
     toggle: false,
@@ -45,6 +47,16 @@ const sidebarReducer = (state: State = initialState, action: ActionInterface) =>
             return {
                 ...state,
                 projectName: action.payload
+            };
+        case Action.SET_FAVORITE_SPACE:
+            return {
+                ...state,
+                favoriteSpace: action.payload
+            };
+        case Action.SET_FAVORITE_PROJECT:
+            return {
+                ...state,
+                favoriteProject: action.payload
             };
         case Action.SET_FOLDER_ID:
             return {

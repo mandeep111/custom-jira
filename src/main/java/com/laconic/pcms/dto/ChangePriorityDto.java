@@ -1,3 +1,3 @@
 package com.laconic.pcms.dto;
 
-public record ChangePriorityDto(Long id, String priority) {}
+public record ChangePriorityDto(String priority) {}

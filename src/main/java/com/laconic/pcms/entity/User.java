@@ -6,6 +6,7 @@ import jakarta.validation.constraints.Pattern;
 import lombok.*;
 import org.hibernate.annotations.Fetch;
 import org.hibernate.annotations.FetchMode;
+import org.hibernate.annotations.Where;
 
 import java.util.List;
 import java.util.Set;
@@ -22,6 +23,7 @@ import java.util.Set;
         @NamedAttributeNode("tasks"),
         @NamedAttributeNode("spaces")
 })
+@Where(clause = "is_active = true")
 public class User extends BaseEntity<String> {
     @Id
     @GeneratedValue(strategy = GenerationType.TABLE, generator = "id_generator")

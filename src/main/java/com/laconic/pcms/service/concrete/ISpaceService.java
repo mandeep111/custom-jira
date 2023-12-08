@@ -29,7 +29,8 @@ public interface ISpaceService {
 
     PaginationResponse<SpaceResponse> getAll(String email, int pageNo, int pageSize, String sortBy, String sortDir, String keyword);
 
-    SpaceResponse getByUrl(Long id, String url);
+    SpaceResponse getByUrlAndId(Long id, String url);
+    SpaceResponse getByUrl(String url);
 
     SpaceResponse updateName(String name, Long id);
 

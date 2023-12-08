@@ -1,13 +1,11 @@
-import { Gantt, Task as GanttTask } from 'gantt-task-react';
-import React from 'react';
-import { useParams } from 'react-router-dom';
-import { Grid } from '../Grid';
-import { Alert } from '../Alert';
 import { InformationCircleIcon } from '@heroicons/react/24/outline';
-import { Task } from '../../types/Task';
+import React from 'react';
 import { Chart } from 'react-google-charts';
-import { getTheme } from '../../redux/Theme/selectors';
 import { useSelector } from 'react-redux';
+import { useParams } from 'react-router-dom';
+import { getTheme } from '../../redux/Theme/selectors';
+import { Alert } from '../Alert';
+import { Grid } from '../Grid';
 
 interface Props {
     taskList: Task[];
@@ -30,7 +28,6 @@ const Component = ({ taskList }: Props) => {
     const columns = [
         { type: 'string', label: 'Task ID' },
         { type: 'string', label: 'Task Name' },
-        { type: 'string', label: 'Resource' },
         { type: 'date', label: 'Start Date' },
         { type: 'date', label: 'End Date' },
         { type: 'number', label: 'Duration' },
@@ -38,59 +35,24 @@ const Component = ({ taskList }: Props) => {
         { type: 'string', label: 'Dependencies' },
     ];
 
-    const rows = [
-        [
-            '2014Spring',
-            'Spring 2014',
-            'spring',
-            new Date(2014, 2, 22),
-            new Date(2014, 5, 20),
-            null,
-            100,
-            null,
-        ],
-        [
-            '2014Summer',
-            'Summer 2014',
-            'summer',
-            new Date(2014, 5, 21),
-            new Date(2014, 8, 20),
-            null,
-            100,
-            null,
-        ],
-        [
-            '2014Autumn',
-            'Autumn 2014',
-            'autumn',
-            new Date(2014, 8, 21),
-            new Date(2014, 11, 20),
-            null,
-            100,
-            null,
-        ],
-        [
-            '2014Winter',
-            'Winter 2014',
-            'winter',
-            new Date(2014, 11, 21),
-            new Date(2015, 2, 21),
-            null,
-            100,
-            null,
-        ],
-    ];
+    const rows = taskList.map(task => [
+        task.id?.toString(),
+        task.name,
+        new Date(task.start!),
+        new Date(task.end!),
+        null,
+        task.progress,
+        null
+    ]);
+
+
 
     const data = [columns, ...rows];
     const options = {
-        height: 400,
-        backgroundColor: '#FF2',
-        colors: ['black'],
         gantt: {
             trackHeight: 50,
-            innerGridTrack: { fill: theme === 'dark' ? 'black' : 'white', textStyle: { color: 'red' } },
+            innerGridTrack: { fill: theme === 'dark' ? 'black' : 'white' },
         },
-
     };
 
     return (
@@ -106,11 +68,12 @@ const Component = ({ taskList }: Props) => {
                                 height="100%"
                                 data={data}
                                 options={options}
+                                className="bg-red-500"
                             />
                         ) : (
-                            <Alert icon={<InformationCircleIcon className="icon-x20 mr-2" />} message={'There are no tasks assigned to me.'} />
+                            <Alert icon={<InformationCircleIcon className="mr-2 icon-x20" />} message={'There are no tasks assigned to me.'} />
                         )) : (
-                        <Alert icon={<InformationCircleIcon className="icon-x20 mr-2" />} message={'Please select project.'} />
+                        <Alert icon={<InformationCircleIcon className="mr-2 icon-x20" />} message={'Please select project.'} />
                     )}
                 </Grid.Column>
             </Grid>

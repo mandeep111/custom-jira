@@ -1,9 +1,8 @@
+import { EyeIcon } from '@heroicons/react/20/solid';
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Grid } from '../Grid';
-import { EyeIcon } from '@heroicons/react/20/solid';
 import { ProgressBarTask } from '../ProgressBar';
-import { Project } from '../../types/Project';
 
 interface Grid {
     id: number;
@@ -114,10 +113,25 @@ const Component = ({ columns, project }: TableInformation) => {
 
     return (
         <React.Fragment>
-            <table className="table-relative border-2 text-default" width={'100%'}>
+            <table className="border-2 table-relative text-default" width={'100%'}>
                 <thead>
+                    <tr className="text-center bg-neutral-200 dark:bg-zinc-950">
+                        {columns.map((column: TableColumn, index: number) => (
+                            <React.Fragment key={index}>
+                                <th className="p-3 m-3 ">
+                                    <div className="text">
+                                        <label htmlFor={column.accessor} className="px-2 py-1 cursor-pointer select-none">{column.Header}</label>
+                                    </div>
+                                </th>
+                            </React.Fragment>
+                        ))}
+                        <th>{'VIEW'}</th>
+                    </tr>
+
+                </thead>
+                {/* <thead>
                     <tr>
-                        <th className="text-center bg-neutral-200 dark:bg-zinc-950 p-3 m-3 ">
+                        <th className="p-3 m-3 text-center bg-neutral-200 dark:bg-zinc-950 ">
                             <Grid column={12} gap={1}>
                                 {columns.map((column: TableColumn, index: number) => (
                                     (column.accessor === 'id' ? (
@@ -137,50 +151,45 @@ const Component = ({ columns, project }: TableInformation) => {
                             </Grid>
                         </th>
                     </tr>
-                </thead>
+                </thead> */}
                 <tbody>
                     {project.map((projects: Project, index: number) => (
                         <React.Fragment key={index}>
                             <tr>
-                                <td className="p-3">
-                                    <Grid column={12} gap={1}>
-                                        <Grid.Column sm={1} md={1} lg={1} xl={1} xxl={1}>
-                                            <div className="text-center">
-                                                <label className="px-2 py-1 cursor-pointer select-none">{index + 1}</label>
-                                            </div>
-                                        </Grid.Column>
-                                        <Grid.Column sm={2} md={2} lg={2} xl={2} xxl={2} key={index}>
-                                            <div className="text-start">
-                                                <label className="px-2 py-1 cursor-pointer select-none">{projects.name}</label>
-                                            </div>
-                                        </Grid.Column>
-                                        <Grid.Column sm={2} md={2} lg={2} xl={2} xxl={2} key={index}>
-                                            <div className="text-center">
-                                                <label className="px-2 py-1 cursor-pointer select-none">{projects.spaceName}</label>
-                                            </div>
-                                        </Grid.Column>
-                                        <Grid.Column sm={2} md={2} lg={2} xl={2} xxl={2} key={index}>
-                                            <div className="text-center">
-
-                                                <label className="px-2 py-1 cursor-pointer select-none">{projects.tasks?.length}</label>
-                                            </div>
-                                        </Grid.Column>
-                                        <Grid.Column sm={2} md={2} lg={2} xl={2} xxl={2} key={index}>
-                                            <div className="text-center">
-                                                <label className="px-2 py-1 cursor-pointer select-none">{projects.userName?.toUpperCase()}</label>
-                                            </div>
-                                        </Grid.Column>
-                                        <Grid.Column sm={2} md={2} lg={2} xl={2} xxl={2} key={index}>
-                                            <ProgressBarTask progress={projects.progress ?? 0} />
-                                        </Grid.Column>
-                                        <Grid.Column sm={1} md={1} lg={1} xl={1} xxl={1}>
-                                            <Link to={projects.id && projects.url ? `/report/${projects.id}/${projects.url}` : ''} className="flex items-center ml-10 w-full">
-                                                <div className="float-right">
-                                                    <EyeIcon className="icon-x24" />
-                                                </div>
-                                            </Link>
-                                        </Grid.Column>
-                                    </Grid>
+                                <td className="p-3 text-center">
+                                    <div className="text">
+                                        <label className="px-2 py-1 cursor-pointer select-none">{index + 1}</label>
+                                    </div>
+                                </td>
+                                <td className="p-3 text-start">
+                                    <div className="text">
+                                        <label className="px-2 py-1 cursor-pointer select-none">{projects.name}</label>
+                                    </div>
+                                </td>
+                                <td className="p-3 text-start">
+                                    <div className="text">
+                                        <label className="px-2 py-1 cursor-pointer select-none">{projects.spaceName}</label>
+                                    </div>
+                                </td>
+                                <td className="p-3 text-center">
+                                    <div className="text">
+                                        <label className="px-2 py-1 cursor-pointer select-none">{projects.tasks?.length}</label>
+                                    </div>
+                                </td>
+                                <td className="p-3 text-start">
+                                    <div className="text">
+                                        <label className="px-2 py-1 cursor-pointer select-none">{projects.userName?.toUpperCase()}</label>
+                                    </div>
+                                </td>
+                                <td className="p-3 text-start">
+                                    <ProgressBarTask progress={projects.progress ?? 0} />
+                                </td>
+                                <td className="p-3 text-start">
+                                    <Link to={projects.id && projects.url ? `/report/${projects.id}/${projects.url}` : ''} className="flex items-center w-full ml-10">
+                                        <div className="float-right">
+                                            <EyeIcon className="icon-x24" />
+                                        </div>
+                                    </Link>
                                 </td>
                             </tr>
                         </React.Fragment>

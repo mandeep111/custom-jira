@@ -1,11 +1,9 @@
+import axios from 'axios';
 import React from 'react';
 import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import useInputChange, { InputChangeHandler } from '../../hooks/useInputChange';
 import { setExpirationDate, setToken, setUserId } from '../../redux/Authentication/actions';
-import Http from '../../services/Http';
-import { API } from '../../utils/api';
 
 interface Response {
     id: number | null;
@@ -26,7 +24,6 @@ const Container = () => {
     const dispatch = useDispatch();
 
     const navigate = useNavigate();
-    const inputChange: InputChangeHandler = useInputChange();
     const [remember, setRemember] = React.useState(false);
     const [user, setUser] = React.useState<Auth>({
         email: '',
@@ -40,30 +37,36 @@ const Container = () => {
     const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         try {
-            const response = await Http.login<Auth, Response>(API.AUTHENTICATION, user, { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
-            Http.authentication(localStorage.getItem('jwt')! || sessionStorage.getItem('jwt')!);
-            dispatch(setToken(response.token));
-            dispatch(setUserId(response.id));
-            dispatch(setExpirationDate(response.expirationDate));
+            const response = await axios.post<Response>(SERVER.API.AUTHENTICATION, user, {
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            });
+            axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
+
+            dispatch(setToken(response.data.token));
+            dispatch(setUserId(response.data.id));
+            dispatch(setExpirationDate(response.data.expirationDate));
+
             if (remember) {
-                localStorage.setItem('jwt', response.token);
-                localStorage.setItem('user_id', response.id!.toString());
-                localStorage.setItem('expiration_date', response.expirationDate!.toString());
+                localStorage.setItem('jwt', response.data.token);
+                localStorage.setItem('user_id', response.data.id!.toString());
+                localStorage.setItem('expiration_date', response.data.expirationDate!.toString());
             } else {
-                sessionStorage.setItem('jwt', response.token);
-                sessionStorage.setItem('user_id', response.id!.toString());
-                sessionStorage.setItem('expiration_date', response.expirationDate!.toString());
+                sessionStorage.setItem('jwt', response.data.token);
+                sessionStorage.setItem('user_id', response.data.id!.toString());
+                sessionStorage.setItem('expiration_date', response.data.expirationDate!.toString());
             }
+
             toast.success('Welcome', {
                 position: 'top-center',
                 onOpen: () => {
                     navigate('/');
-                }
+                },
             });
         } catch (error) {
             throw new Error(error as string);
         }
     };
+
 
     React.useEffect(() => {
         if (localStorage.getItem('jwt') || sessionStorage.getItem('jwt')) {
@@ -81,7 +84,7 @@ const Container = () => {
                         type="email"
                         className="text-gray-800 bg-white border outline-none rounded-lg block w-full p-2"
                         placeholder="name@company.com"
-                        onChange={(event) => inputChange(event, setUser)}
+                        onChange={(event) => setUser({ ...user, email: event.target.value })}
                         required={true}
                     />
                 </div>
@@ -92,7 +95,7 @@ const Container = () => {
                         type="password"
                         placeholder="••••••••"
                         className="text-gray-800 bg-white border outline-none rounded-lg block w-full p-2"
-                        onChange={(event) => inputChange(event, setUser)}
+                        onChange={(event) => setUser({ ...user, password: event.target.value })}
                         required={true}
                     />
                 </div>

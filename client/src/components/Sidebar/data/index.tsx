@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChartPieIcon, HomeIcon } from '@heroicons/react/24/outline';
+import { ChartPieIcon, HomeIcon, BellIcon } from '@heroicons/react/24/outline';
 
 const Data = () => {
 
@@ -16,6 +16,13 @@ const Data = () => {
             url: '/report',
             tags: 'report',
             icon: () => <ChartPieIcon className="icon-x16" />,
+            child: []
+        },
+        {
+            name: 'Notification',
+            url: '/notification',
+            tags: 'notification',
+            icon: () => <BellIcon className="icon-x16" />,
             child: []
         }
     ];

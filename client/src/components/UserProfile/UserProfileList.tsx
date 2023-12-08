@@ -1,6 +1,6 @@
+import { Disclosure } from '@headlessui/react';
 import React from 'react';
 import { useDrop } from 'react-dnd';
-import { Disclosure } from '@headlessui/react';
 
 interface TodoState {
     children?: React.ReactNode;
@@ -38,7 +38,7 @@ const Component: React.FunctionComponent<TodoState> = ({ children, className, ti
         <React.Fragment>
             <Disclosure defaultOpen={state !== 0}>
                 <React.Fragment>
-                    <div className="inline-flex flex-nowrap items-center rounded transition duration-200 py-2.5 hover:bg-default-faded w-full"
+                    <div className="inline-flex flex-nowrap items-center rounded transition duration-200 py-2.5"
                     // onMouseEnter={() => setIsHoveredSpace(state)}
                     // onMouseLeave={() => setIsHoveredSpace(null)}
                     >

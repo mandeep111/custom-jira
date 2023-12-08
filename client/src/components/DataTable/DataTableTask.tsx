@@ -1,17 +1,11 @@
+import { Disclosure } from '@headlessui/react';
+import { ArrowRightCircleIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
 import React from 'react';
-import { useDispatch } from 'react-redux';
-import { AnyAction } from 'redux';
-import { PencilSquareIcon, MagnifyingGlassIcon, PlusIcon, AdjustmentsHorizontalIcon, BackspaceIcon, ChevronRightIcon, ArrowRightCircleIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
-import { ListBulletIcon, SquaresPlusIcon } from '@heroicons/react/24/solid';
-import { Link, Location, NavigateFunction, useLocation, useNavigate } from 'react-router-dom';
-import { Grid } from '../Grid';
-import { PopoverColor } from '../Popover';
-import { Disclosure, Menu, Transition } from '@headlessui/react';
-import { DataTableSubTask } from '.';
-import { Alert } from '../Alert';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
-import { Task } from '../../types/Task';
+import { DataTableSubTask } from '.';
+import { Alert } from '../Alert';
+import { PopoverColor } from '../Popover';
 
 /**
  * Represents information about a table used for displaying tabular data.
@@ -111,13 +105,13 @@ const Component = ({ columns, task }: TableInformation) => {
 
     return (
         <React.Fragment>
-            <table className="table-relative border-2 text-default" width={'100%'}>
+            <table className="border-2 table-relative text-default" width={'100%'}>
                 <thead>
-                    <tr className="text-center  bg-neutral-200 dark:bg-zinc-950">
+                    <tr className="text-center bg-neutral-200 dark:bg-zinc-950">
                         <th colSpan={2}>{'TASK'}</th>
                         {columns.map((column: TableColumn, index: number) => (
                             <React.Fragment key={index}>
-                                <th className=" p-3 m-3">
+                                <th className="p-3 m-3 ">
                                     <div className="text">
                                         <label htmlFor={column.accessor} className="px-2 py-1 cursor-pointer select-none">{column.Header}</label>
                                     </div>
@@ -136,18 +130,18 @@ const Component = ({ columns, task }: TableInformation) => {
                                         {({ open }) => (
                                             <React.Fragment>
                                                 <tr>
-                                                    <td className="text-center p-3">
+                                                    <td className="p-3 text-center">
                                                         <Disclosure.Button>
                                                             <ArrowRightCircleIcon className={`${open ? 'rotate-90 transform' : ''}     inline-flex icon-x24 text-default ml-1`} />
                                                         </Disclosure.Button>
                                                     </td>
-                                                    <td className="text-center p-3 "> <PopoverColor color={tasks.color} /></td>
-                                                    <td className="text-center p-3">
+                                                    <td className="p-3 text-center "> <PopoverColor color={tasks.color} /></td>
+                                                    <td className="p-3 text-center">
                                                         <div className="text">
                                                             <label className="px-2 py-1 cursor-pointer select-none">{index + 1}</label>
                                                         </div>
                                                     </td>
-                                                    <td className="text-start p-3">
+                                                    <td className="p-3 text-start">
                                                         <div className="text">
                                                             <label className="px-2 py-1 cursor-pointer select-none">{tasks.name}</label>
                                                         </div>
@@ -173,28 +167,28 @@ const Component = ({ columns, task }: TableInformation) => {
                                                             )}
                                                         </div>
                                                     </td>
-                                                    <td className="text-center p-3">
+                                                    <td className="p-3 text-center">
                                                         <div className="text">
 
                                                             <label className="px-2 py-1 cursor-pointer select-none">{tasks.subTasks?.length}</label>
                                                         </div>
                                                     </td>
-                                                    <td className="text-center p-3">
+                                                    <td className="p-3 text-center">
                                                         <div className="text">
-                                                            <p className="mb-2 text-sm text-default mr-3">
+                                                            <p className="mb-2 mr-3 text-sm text-default">
                                                                 {new Intl.DateTimeFormat('en-US').format(new Date(tasks.start!))}
                                                             </p>
 
                                                         </div>
                                                     </td>
-                                                    <td className="text-center p-3">
+                                                    <td className="p-3 text-center">
                                                         <div className="text">
                                                             <p className="mb-2 text-sm text-default">
                                                                 {new Intl.DateTimeFormat('en-US').format(new Date(tasks.end!))}
                                                             </p>
                                                         </div>
                                                     </td>
-                                                    <td className="text-center p-3">
+                                                    <td className="p-3 text-center">
                                                         {tasks.progress && (
                                                             <div className="flex items-center justify-center">
                                                                 <div className="w-48  bg-default-faded rounded-full h-2.5">
@@ -241,8 +235,8 @@ const Component = ({ columns, task }: TableInformation) => {
                         </DndProvider>
                     ) : (
                         <tr>
-                            <td className="text-center p-3 text-default" colSpan={10}>
-                                <Alert icon={<InformationCircleIcon className="icon-x20 mr-2" />} message={'There are no tasks.'} />
+                            <td className="p-3 text-center text-default" colSpan={10}>
+                                <Alert icon={<InformationCircleIcon className="mr-2 icon-x20" />} message={'There are no tasks.'} />
                             </td>
                         </tr>
                     )}

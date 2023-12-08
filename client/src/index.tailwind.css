@@ -47,7 +47,7 @@
 
 @layer utilities {
     .tooltip {
-        @apply invisible absolute;
+        @apply invisible absolute rounded px-3 py-1.5 bg-default border border-default text-default whitespace-nowrap;
     }
       
     .has-tooltip:hover .tooltip {

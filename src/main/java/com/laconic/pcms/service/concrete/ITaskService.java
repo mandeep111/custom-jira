@@ -1,7 +1,9 @@
 package com.laconic.pcms.service.concrete;
 
 import com.laconic.pcms.enums.TaskPriority;
+import com.laconic.pcms.request.GroupByRequest;
 import com.laconic.pcms.request.TaskRequest;
+import com.laconic.pcms.response.GroupByResponse;
 import com.laconic.pcms.response.PaginationResponse;
 import com.laconic.pcms.response.TaskResponse;
 
@@ -37,4 +39,7 @@ public interface ITaskService {
     TaskResponse duplicateTask(Long taskId);
 
     TaskResponse changePriority(Long id, TaskPriority priority);
+    List<GroupByResponse> getGroupedTasks(String email, GroupByRequest request);
+
+    TaskResponse resolveSubTasks(Long taskId);
 }

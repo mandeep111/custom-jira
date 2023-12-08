@@ -1,31 +1,31 @@
 
 import { Menu, Transition } from '@headlessui/react';
 import { CheckIcon, UserPlusIcon } from '@heroicons/react/24/outline';
+import axios, { AxiosResponse } from 'axios';
 import React from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { AnyAction } from 'redux';
+import { getSpaceId } from '../../redux/Sidebar/selectors';
 import { setUser } from '../../redux/User/actions';
-import Http from '../../services/Http';
-import { API } from '../../utils/api';
-import { Assign } from '../../types/Assign';
-import { User } from '../../types/User';
 
 interface Props {
     assign: Assign[];
     setAssign: React.Dispatch<React.SetStateAction<Assign[]>>;
+    type?: 'CREATE' | 'UPDATE';
 }
 
-const Component = ({ assign, setAssign }: Props) => {
+const Component = ({ assign, setAssign, type = 'CREATE' }: Props) => {
 
     const dispatch = useDispatch();
+    const spaceId = useSelector(getSpaceId);
     const [userList, setUserList] = React.useState<User[]>([]);
     const [pageSize, setPageSize] = React.useState(5);
     const [totalElements, setTotalElements] = React.useState(0);
 
     const fetchUser = async () => {
         try {
-            const response: { content: User[], totalElements: number } = await Http.get(`${API.USER}/page?pageSize=${pageSize}`);
-            const { content, totalElements } = response;
+            const response: AxiosResponse<APIResponse<User>> = await axios.get(`${SERVER.API.USER}/page?pageSize=${pageSize}`);
+            const { content, totalElements } = response.data;
             setUserList(content);
             setTotalElements(totalElements);
         } catch (error) {
@@ -39,31 +39,33 @@ const Component = ({ assign, setAssign }: Props) => {
         dispatch(setUser(pageSize) as unknown as AnyAction);
     };
 
-    // const handleAssignClick = (event: React.MouseEvent, id: number | null) => {
-    //     event.preventDefault();
-    //     const existingIndex = assign.findIndex((item) => item.id === id);
-    //     if (existingIndex !== -1) {
-    //         const newAssign = [...assign.slice(0, existingIndex), ...assign.slice(existingIndex + 1)];
-    //         setAssign(newAssign);
-    //     } else {
-    //         setAssign([...assign, { id, fullName: userList.find((item) => item.id === id)?.fullName }]);
-    //     }
-    // };
-
-    const handleAssignClick = (event: React.MouseEvent, id: number | null) => {
+    const handleAssignClick = async (event: React.MouseEvent, id: number | null) => {
         event.preventDefault();
         const existingIndex = assign.findIndex((item) => item.id === id);
-        if (existingIndex !== -1) {
-            const newAssign = [...assign.slice(0, existingIndex), ...assign.slice(existingIndex + 1)];
-            setAssign(newAssign);
-        } else {
-            const user = userList.find((item) => item.id === id);
-            if (user && user.fullName) {
-                setAssign([...assign, { id, fullName: user.fullName }]);
+        if (type === 'CREATE') {
+            if (existingIndex !== -1) {
+                setAssign(assign.filter((item) => item.id !== id));
+            } else {
+                const user = userList.find((item) => item.id === id);
+                if (user && user.fullName) {
+                    setAssign([...assign, { id, fullName: user.fullName }]);
+                }
             }
+        } else if (type === 'UPDATE') {
+            if (existingIndex !== -1) {
+                setAssign(assign.filter((item) => item.id !== id));
+                await axios.delete(`${SERVER.API.SPACE}/assign/${spaceId!}?userIds=${id!}`);
+            } else {
+                const user = userList.find((item) => item.id === id);
+                if (user && user.fullName) {
+                    setAssign([...assign, { id, fullName: user.fullName }]);
+                    await axios.post(`${SERVER.API.SPACE}/assign/${spaceId!}?userIds=${id!}`);
+                }
+            }
+        } else {
+            throw new Error('Invalid type');
         }
     };
-
 
     React.useEffect(() => {
         void fetchUser();
@@ -74,7 +76,7 @@ const Component = ({ assign, setAssign }: Props) => {
             <Menu as="div" className="relative inline-block text-left">
                 <div>
                     <Menu.Button className="flex items-center">
-                        <UserPlusIcon className="icon-x20 mt-5" fill="transparent" />
+                        <UserPlusIcon className="mt-5 icon-x20" fill="transparent" />
                     </Menu.Button>
                 </div>
                 <Transition
@@ -86,16 +88,16 @@ const Component = ({ assign, setAssign }: Props) => {
                     leaveFrom="transform opacity-100 scale-100"
                     leaveTo="transform opacity-0 scale-95"
                 >
-                    <Menu.Items className="absolute mt-2 w-64 origin-top-left divide-y divide-gray-100 rounded-md bg-default shadow-lg border border-default">
-                        <div className="px-1 py-1 max-h-72 overflow-y-scroll">
+                    <Menu.Items className="absolute w-64 mt-2 origin-top-left border divide-y divide-gray-100 rounded-md shadow-lg bg-default border-default">
+                        <div className="px-1 py-1 overflow-y-scroll max-h-72">
                             <Menu.Item as="div">
                                 {userList.map((user, index) => (
                                     <div
                                         key={index}
-                                        className="relative select-none pl-10 pr-4 group text-default flex w-full items-center rounded-md px-2 py-2 text-sm hover:bg-default-faded cursor-pointer"
-                                        onClick={(event) => handleAssignClick(event, user.id)}
+                                        className="relative flex items-center w-full px-2 py-2 pl-10 pr-4 text-sm rounded-md cursor-pointer select-none group text-default hover:bg-default-faded"
+                                        onClick={(event) => void handleAssignClick(event, user.id)}
                                     >
-                                        <span className="block truncate font-normal">
+                                        <span className="block font-normal truncate">
                                             {user.fullName}
                                         </span>
                                         {assign && assign.some((assn) => assn.id === user.id) && (
@@ -107,10 +109,10 @@ const Component = ({ assign, setAssign }: Props) => {
                                 ))}
                                 {userList.length !== totalElements && (
                                     <div
-                                        className="relative select-none pl-10 pr-4 group text-default flex w-full items-center rounded-md px-2 py-2 text-sm hover:bg-default-faded cursor-pointer"
+                                        className="relative flex items-center w-full px-2 py-2 pl-10 pr-4 text-sm rounded-md cursor-pointer select-none group text-default hover:bg-default-faded"
                                         onClick={handleLoadMore}
                                     >
-                                        <span className="block truncate font-normal">
+                                        <span className="block font-normal truncate">
                                             {'Load more...'}
                                         </span>
                                     </div>

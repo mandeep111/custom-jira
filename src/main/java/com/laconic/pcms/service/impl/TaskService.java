@@ -3,37 +3,41 @@ package com.laconic.pcms.service.impl;
 import com.laconic.pcms.component.CommonComponent;
 import com.laconic.pcms.component.DuplicateComponent;
 import com.laconic.pcms.entity.*;
+import com.laconic.pcms.enums.NotificationType;
+import com.laconic.pcms.enums.ProgressStatus;
 import com.laconic.pcms.enums.TaskPriority;
 import com.laconic.pcms.event.TaskEvent;
-import com.laconic.pcms.exceptions.PreconditionFailedException;
 import com.laconic.pcms.repository.*;
+import com.laconic.pcms.request.GroupByRequest;
 import com.laconic.pcms.request.IdRequest;
 import com.laconic.pcms.request.TaskRequest;
+import com.laconic.pcms.response.GroupByResponse;
 import com.laconic.pcms.response.PaginationResponse;
 import com.laconic.pcms.response.TaskResponse;
 import com.laconic.pcms.service.concrete.ITaskService;
 import com.laconic.pcms.utils.KeyCloakAuthenticationUtil;
+import com.laconic.pcms.utils.NotificationUtil;
 import com.laconic.pcms.utils.TaskUtil;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.stereotype.Service;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.laconic.pcms.constants.AppMessages.*;
 import static com.laconic.pcms.specification.ProjectSpec.getByProjectId;
+import static com.laconic.pcms.specification.TaskSpec.*;
 import static com.laconic.pcms.utils.AutoMapper.convertList;
 import static com.laconic.pcms.utils.AutoMapper.convertObject;
 import static com.laconic.pcms.utils.Common.getPageable;
 import static com.laconic.pcms.utils.ExceptionMapper.throwNotFoundException;
-import static com.laconic.pcms.utils.TaskUtil.getFilteredTasks;
+import static com.laconic.pcms.utils.TaskUtil.*;
 
 @Service
 public class TaskService implements ITaskService {
@@ -45,20 +49,25 @@ public class TaskService implements ITaskService {
     private final IUserRepo userRepo;
     private final DuplicateComponent duplicateComponent;
     private final KeyCloakAuthenticationUtil keyCloakAuthenticationUtil;
+    private final NotificationUtil notificationUtil;
+    private final ISubTaskRepo subTaskRepo;
 
-    public TaskService(ITaskRepo taskRepo, CommonComponent commonComponent, ITagRepo projectTagRepo, IUserRepo userRepo, DuplicateComponent duplicateComponent, KeyCloakAuthenticationUtil keyCloakAuthenticationUtil) {
+    public TaskService(ITaskRepo taskRepo, CommonComponent commonComponent, ITagRepo projectTagRepo, IUserRepo userRepo, DuplicateComponent duplicateComponent, KeyCloakAuthenticationUtil keyCloakAuthenticationUtil, NotificationUtil notificationUtil, ISubTaskRepo subTaskRepo) {
         this.taskRepo = taskRepo;
         this.commonComponent = commonComponent;
         this.projectTagRepo = projectTagRepo;
         this.userRepo = userRepo;
         this.duplicateComponent = duplicateComponent;
         this.keyCloakAuthenticationUtil = keyCloakAuthenticationUtil;
+        this.notificationUtil = notificationUtil;
+        this.subTaskRepo = subTaskRepo;
     }
 
     /**
      * @param request
      */
     @Override
+    @Transactional(rollbackOn = Exception.class)
     public void save(TaskRequest request) {
         var currentUser = keyCloakAuthenticationUtil.getUser();
         var task = convertObject(request, Task.class);
@@ -75,11 +84,15 @@ public class TaskService implements ITaskService {
         if (request.getIsPrivate() && users.stream().noneMatch(u -> u.getId().equals(currentUser.getId()))) {
             users.add(currentUser);
         }
-
         task.setUsers(users);
         // Set the project tags for the project
         task.setTags(projectTags);
         task = this.taskRepo.save(task);
+        var pmsUrlUi = task.getProject().getSpace().getId() +"/"+task.getProject().getSpace().getUrl()+
+                "/"+ task.getProject().getId()+"/"+ task.getProject().getUrl();
+        // send email notifications
+        var emailUsers = users.stream().filter(u -> !u.getEmail().equals(currentUser.getEmail())).collect(Collectors.toSet());
+        notificationUtil.sendEmails(emailUsers, NotificationType.task,task.getName(),pmsUrlUi);
         eventPublisher.publishEvent(new TaskEvent(task));
     }
 
@@ -190,8 +203,7 @@ public class TaskService implements ITaskService {
     }
 
     @Override
-    @Transactional
-    @Modifying
+    @Transactional(rollbackOn = Exception.class)
     public TaskResponse addAssignee(Long taskId, Long userId) {
         var task = getTask(taskId);
         var user = commonComponent.getEntity(userId, User.class, USER);
@@ -200,6 +212,9 @@ public class TaskService implements ITaskService {
         users.add(user);
         task.setUsers(users);
         task = this.taskRepo.save(task);
+        var pmsUrlUi = task.getProject().getSpace().getId() +"/"+task.getProject().getSpace().getUrl()+
+                       "/"+ task.getProject().getId()+"/"+ task.getProject().getUrl();
+        notificationUtil.sendEmails(Set.of(user), NotificationType.task,task.getName(), pmsUrlUi);
         return convertObject(task, TaskResponse.class);
     }
 
@@ -220,6 +235,7 @@ public class TaskService implements ITaskService {
     public TaskResponse duplicateTask(Long taskId) {
         var task = duplicateComponent.duplicateTask(taskId);
         eventPublisher.publishEvent(new TaskEvent(task));
+        notificationUtil.sendEmails(task.getUsers(), NotificationType.task,task.getName(), task.getName());
         return convertObject(task, TaskResponse.class);
     }
 
@@ -231,33 +247,51 @@ public class TaskService implements ITaskService {
         return convertObject(projectTask, TaskResponse.class);
     }
 
+    @Override
+    public List<GroupByResponse> getGroupedTasks(String email, GroupByRequest request) {
+        List<Task> tasks = new ArrayList<>();
+        if (request.spaceId() != null && request.projectId()!= null) {
+            tasks.addAll(this.taskRepo.findAll(getBySpaceAndProject(request.spaceId(), request.projectId())));
+        } else if (request.projectId() != null) {
+            tasks.addAll(this.taskRepo.findAll(tasksByProject(request.projectId())));
+        } else if (request.spaceId() != null) {
+            tasks.addAll(this.taskRepo.findAll(taskBySpace(request.spaceId())));
+        } else tasks.addAll(this.taskRepo.findAll());
+
+        return mapTasksToSpaces(tasks, request.filterBy(), email);
+    }
+
+    @Override
+    @Transactional
+    public TaskResponse resolveSubTasks(Long taskId) {
+        var task = getTask(taskId);
+        List<SubTask> blockedSubtasks = new ArrayList<>();
+        task.getSubTasks().forEach(u -> u.setStatus(ProgressStatus.COMPLETED));
+        task.setProgress(100.0);
+
+        // set task progress to 100
+        task = this.taskRepo.saveAndFlush(task);
+
+        // unblock other subtasks
+        task.getSubTasks().forEach(s -> {
+            var blocked = this.subTaskRepo.findAllByBlockedBy(s.getId());
+            blocked.forEach(bs ->{
+                bs.setBlockedBy(null);
+                bs.setIsBlocked(false);
+            });
+            blockedSubtasks.addAll(blocked);
+        });
+
+        if (!blockedSubtasks.isEmpty()) this.subTaskRepo.saveAll(blockedSubtasks);
+
+        // publish task to map progress for the project
+        eventPublisher.publishEvent(new TaskEvent(task));
+        return convertObject(task, TaskResponse.class);
+    }
+
 
     public static Set<TaskResponse> mapProgress(Set<TaskResponse> result) {
         return result.stream().map(TaskUtil::mapProgress).collect(Collectors.toSet());
     }
-
-    private static void checkAssignee(Space space, User user) {
-        // validate user is present in task or not
-        if (space.getUsers().stream().noneMatch(a -> a.getId().equals(user.getId()))) {
-            throw new PreconditionFailedException(String.format(USER_NOT_PRESENT, "space"));
-        }
-    }
-
-    private static void checkAssignee(Space space, Set<User> userList) {
-        // Create a set of user IDs in the space
-        Set<Long> spaceUserIds = space.getUsers().stream()
-                .map(User::getId)
-                .collect(Collectors.toSet());
-
-        // Check if all user IDs in userList are present in spaceUserIds
-        boolean allUsersPresent = userList.stream()
-                .allMatch(user -> spaceUserIds.contains(user.getId()));
-
-        // If not all users are present, throw an exception
-        if (!allUsersPresent) {
-            throw new PreconditionFailedException(String.format(USER_NOT_PRESENT, "space"));
-        }
-    }
-
 
 }

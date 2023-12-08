@@ -1,8 +1,8 @@
+import axios from 'axios';
 import React from 'react';
 import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { setExpirationDate, setToken, setUserId } from '../redux/Authentication/actions';
-import Http from '../services/Http';
 
 const useAuthorize = () => {
 
@@ -33,7 +33,7 @@ const useAuthorize = () => {
         if (expirationDate && currentTime > expirationDate) {
             navigate('/logout');
         }
-        Http.authentication(localStorage.getItem('jwt')! || sessionStorage.getItem('jwt')!);
+        axios.defaults.headers.common['Authorization'] = `Bearer ${token!}`;
     }, [token, userId, expirationDate]);
 
 };

@@ -1,9 +1,7 @@
 import { Listbox, Transition } from '@headlessui/react';
 import { CheckIcon, ChevronUpDownIcon } from '@heroicons/react/24/outline';
+import axios, { AxiosResponse } from 'axios';
 import React from 'react';
-import Http from '../../services/Http';
-import { Folder } from '../../types/Folder';
-import { API } from '../../utils/api';
 
 interface Props {
     spaceId: number | null;
@@ -20,13 +18,13 @@ const Component = ({ spaceId, setSelectedFolder }: Props) => {
     const handleLoadMore = (event: React.MouseEvent) => {
         event.preventDefault();
         setPageSize(pageSize + 5);
-        void fetchSpaceList(pageSize);
+        void fetchFolderList(pageSize);
     };
 
-    const fetchSpaceList = async (pageSize: number) => {
+    const fetchFolderList = async (pageSize: number) => {
         try {
-            const response: { content: Folder[], totalElements: number } = await Http.get(`${API.FOLDER}/page?pageSize=${pageSize}&spaceId=${spaceId!}`);
-            const { content, totalElements } = response;
+            const response: AxiosResponse<APIResponse<Folder>> = await axios.get(`${SERVER.API.FOLDER}/page?pageSize=${pageSize}&spaceId=${spaceId!}`);
+            const { content, totalElements } = response.data;
             setTotalElements(totalElements);
             setFolderList(content);
         } catch (error) {
@@ -40,18 +38,18 @@ const Component = ({ spaceId, setSelectedFolder }: Props) => {
 
     React.useEffect(() => {
         setSelected(null);
-        void fetchSpaceList(5);
+        void fetchFolderList(5);
     }, [spaceId]);
 
     return (
         <React.Fragment>
             <Listbox value={selected} onChange={setSelected}>
                 <div className="relative mt-1">
-                    <Listbox.Button className="relative w-full cursor-pointer rounded-lg bg-default border border-default py-2 pl-3 pr-10 text-left">
+                    <Listbox.Button className="relative w-full py-2 pl-3 pr-10 text-left border rounded-lg cursor-pointer bg-default border-default">
                         <span className="block truncate">{selected === null ? '🚫 None' : `📁 ${selected.name}`}</span>
-                        <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
+                        <span className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
                             <ChevronUpDownIcon
-                                className="h-5 w-5 text-gray-400"
+                                className="w-5 h-5 text-gray-400"
                                 aria-hidden="true"
                             />
                         </span>
@@ -62,7 +60,7 @@ const Component = ({ spaceId, setSelectedFolder }: Props) => {
                         leaveFrom="opacity-100"
                         leaveTo="opacity-0"
                     >
-                        <Listbox.Options className="absolute mt-1 max-h-48 w-full overflow-auto rounded-md bg-default border border-default">
+                        <Listbox.Options className="absolute w-full mt-1 overflow-auto border rounded-md max-h-48 bg-default border-default">
                             <Listbox.Option
                                 className={({ active }) => `relative cursor-pointer select-none py-2 pl-10 pr-4 ${active ? 'bg-default-faded' : ''} text-default`}
                                 value={null}

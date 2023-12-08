@@ -5,6 +5,8 @@ export interface State {
     projectId: number | null;
     projectUrl: string;
     projectName: string;
+    favoriteSpace: boolean;
+    favoriteProject: boolean;
     folderId: number | null;
     folderName: string;
     toggle: boolean;
@@ -19,6 +21,8 @@ export enum Action {
     SET_PROJECT_ID = 'SET_PROJECT_ID',
     SET_PROJECT_URL = 'SET_PROJECT_URL',
     SET_PROJECT_NAME = 'SET_PROJECT_NAME',
+    SET_FAVORITE_SPACE = 'SET_FAVORITE_SPACE',
+    SET_FAVORITE_PROJECT = 'SET_FAVORITE_PROJECT',
     SET_FOLDER_ID = 'SET_FOLDER_ID',
     SET_FOLDER_NAME = 'SET_FOLDER_NAME',
     SET_TOGGLE = 'SET_TOGGLE',

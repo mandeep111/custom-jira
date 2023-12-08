@@ -1,14 +1,14 @@
 
+import { Listbox, Menu, Popover, Tab, Transition } from '@headlessui/react';
+import * as HeroIcons from '@heroicons/react/24/outline';
 import React from 'react';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
-import { ReportsProject, ReportsTask, WorkLoadProject, WorkLoadTask } from '.';
-import { Link, useParams } from 'react-router-dom';
-import { Listbox, Menu, Tab, Transition, Popover } from '@headlessui/react';
 import { select } from 'react-i18next/icu.macro';
-import * as HeroIcons from '@heroicons/react/24/outline';
+import { useDispatch, useSelector } from 'react-redux';
+import { Link, useParams } from 'react-router-dom';
+import { ReportsProject, ReportsTask, WorkLoadProject, WorkLoadTask } from '.';
 import { setToggle } from '../../redux/Sidebar/actions';
 import { getToggle } from '../../redux/Sidebar/selectors';
-import { useDispatch, useSelector } from 'react-redux';
 
 const Container = () => {
     const { projectId, projectUrl } = useParams();

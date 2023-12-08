@@ -34,7 +34,7 @@ public class DuplicateComponent {
 
         // Clone the existing project
         Project duplicatedProject = new Project();
-        duplicatedProject.setName("Copy of " + existingProject.getName()); // You can customize the name as needed
+        duplicatedProject.setName(existingProject.getName()); // You can customize the name as needed
         duplicatedProject.setDescription(existingProject.getDescription());
         duplicatedProject.setColor(existingProject.getColor());
         duplicatedProject.setLabel(existingProject.getLabel());
@@ -75,7 +75,7 @@ public class DuplicateComponent {
     private TaskStage duplicateTaskStage(TaskStage taskStage) {
         // Create a new TaskStage and copy attributes
         TaskStage duplicatedTaskStage = new TaskStage();
-        duplicatedTaskStage.setName("Copy of " + taskStage.getName()); // You can customize the name as needed
+        duplicatedTaskStage.setName(taskStage.getName()); // You can customize the name as needed
         duplicatedTaskStage.setDescription(taskStage.getDescription());
         duplicatedTaskStage.setIsFold(taskStage.getIsFold());
         duplicatedTaskStage.setColor(taskStage.getColor());
@@ -96,7 +96,7 @@ public class DuplicateComponent {
             existingTask.getSubTasks().forEach(st -> duplicateSubTask.add(duplicateSubTask(st.getId())));
             Task finalNewTask = newTask;
             duplicateSubTask.forEach(st -> st.setTask(finalNewTask));
-            newTask.setName("Copy of " + existingTask.getName());
+            newTask.setName(existingTask.getName());
             newTask.setPriority(existingTask.getPriority());
             newTask.setDeadlineDate(existingTask.getDeadlineDate());
             newTask.setAssignedDate(existingTask.getAssignedDate());
@@ -138,7 +138,7 @@ public class DuplicateComponent {
     @NotNull
     private static SubTask getSubTask(SubTask existingSubTask) {
         SubTask duplicatedSubTask = new SubTask();
-        duplicatedSubTask.setName("Copy of " + existingSubTask.getName());
+        duplicatedSubTask.setName(existingSubTask.getName());
         duplicatedSubTask.setDescription(existingSubTask.getDescription());
         duplicatedSubTask.setDeadlineDate(existingSubTask.getDeadlineDate());
         duplicatedSubTask.setAssignedDate(existingSubTask.getAssignedDate());
@@ -148,6 +148,8 @@ public class DuplicateComponent {
         duplicatedSubTask.setNeedApproval(existingSubTask.getNeedApproval());
         duplicatedSubTask.setUrl(existingSubTask.getUrl());
         duplicatedSubTask.setUser(existingSubTask.getUser());
+        duplicatedSubTask.setIsBlocked(false);
+        duplicatedSubTask.setPriority(existingSubTask.getPriority());
         duplicatedSubTask.setStatus(ProgressStatus.WAITING); // new sub-task should be on waiting
         return duplicatedSubTask;
     }
@@ -159,7 +161,7 @@ public class DuplicateComponent {
         duplicateSpace.setTags(existingSpace.getTags());
         duplicateSpace.setColor(existingSpace.getColor());
         duplicateSpace.setUrl(existingSpace.getUrl());
-        duplicateSpace.setName("Copy of "+existingSpace.getName());
+        duplicateSpace.setName(existingSpace.getName());
         duplicateSpace.setUsers(new HashSet<>(existingSpace.getUsers()));
         this.spaceRepo.save(duplicateSpace);
         return duplicateSpace;

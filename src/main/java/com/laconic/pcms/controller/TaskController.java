@@ -5,7 +5,9 @@ import com.laconic.pcms.constants.Routes;
 import com.laconic.pcms.dto.ChangePriorityDto;
 import com.laconic.pcms.enums.TaskPriority;
 import com.laconic.pcms.exceptions.ServerException;
+import com.laconic.pcms.request.GroupByRequest;
 import com.laconic.pcms.request.TaskRequest;
+import com.laconic.pcms.response.GroupByResponse;
 import com.laconic.pcms.response.PaginationResponse;
 import com.laconic.pcms.response.TaskResponse;
 import com.laconic.pcms.service.concrete.ITaskService;
@@ -106,12 +108,12 @@ public class TaskController {
     }
 
     @PostMapping("/assignee/{id}/{assigneeId}")
-    public ResponseEntity<TaskResponse> addAssignee(@PathVariable Long id, @PathVariable Long assigneeId) {
+    public ResponseEntity<TaskResponse> addAssignee(@PathVariable("id") Long id, @PathVariable("assigneeId") Long assigneeId) {
         return ResponseEntity.ok().body(this.projectTaskService.addAssignee(id, assigneeId));
     }
 
     @DeleteMapping("/assignee/{id}/{assigneeId}")
-    public ResponseEntity<TaskResponse> removeAssignee(@PathVariable Long id, @PathVariable Long assigneeId) {
+    public ResponseEntity<TaskResponse> removeAssignee(@PathVariable("id") Long id, @PathVariable("assigneeId") Long assigneeId) {
         return ResponseEntity.ok().body(this.projectTaskService.removeAssignee(id, assigneeId));
     }
 
@@ -120,8 +122,18 @@ public class TaskController {
         return ResponseEntity.ok().body(this.projectTaskService.duplicateTask(id));
     }
 
-    @PostMapping("/change-priority")
-    public void changePriority(@RequestBody ChangePriorityDto record) {
-        this.projectTaskService.changePriority(record.id(), TaskPriority.valueOf(record.priority()));
+    @PatchMapping("/change-priority/{id}")
+    public void changePriority(@PathVariable Long id, @RequestBody ChangePriorityDto record) {
+        this.projectTaskService.changePriority(id, TaskPriority.valueOf(record.priority()));
+    }
+
+    @PostMapping("/group-by")
+    public ResponseEntity<List<GroupByResponse>> groupTasks(@AuthenticationPrincipal Jwt jwt, @RequestBody GroupByRequest request) {
+        return ResponseEntity.ok().body(this.projectTaskService.getGroupedTasks(getEmailFromToken(jwt.getTokenValue()), request));
+    }
+
+    @PostMapping("/resolve-subtask/{taskId}")
+    public ResponseEntity<TaskResponse> resolveAllSubtasks(@PathVariable("taskId") Long taskId) {
+        return ResponseEntity.ok().body(this.projectTaskService.resolveSubTasks(taskId));
     }
 }

@@ -1,14 +1,10 @@
 import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
+import axios from 'axios';
 import React from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import useCheckboxChecked, { CheckboxCheckedHandler } from '../../hooks/useCheckboxChecked';
 import { setOpenFormNewSpace } from '../../redux/Dialog/actions';
 import { getOpenFormNewSpace } from '../../redux/Dialog/selectors';
-import Http from '../../services/Http';
-import { Assign } from '../../types/Assign';
-import { Space } from '../../types/Space';
-import { API } from '../../utils/api';
 import { Grid } from '../Grid';
 import { MenuUser } from '../Menu';
 import { PopoverColor } from '../Popover';
@@ -31,10 +27,7 @@ const Component = ({ fetchingData }: Props) => {
     const dispatch = useDispatch();
     const isOpen = useSelector(getOpenFormNewSpace);
 
-    const checkboxChange: CheckboxCheckedHandler = useCheckboxChecked();
-
     const [assign, setAssign] = React.useState<Assign[]>([]);
-
     const [space, setSpace] = React.useState<Space>(initialSpaceState);
 
     const handleColorChange = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -64,7 +57,7 @@ const Component = ({ fetchingData }: Props) => {
     const handleFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         try {
-            await Http.create(API.SPACE, space);
+            await axios.post(SERVER.API.SPACE, space);
             await fetchingData();
         } catch (error) {
             throw new Error(error as string);
@@ -126,7 +119,7 @@ const Component = ({ fetchingData }: Props) => {
                         <div className="backdrop" />
                     </Transition.Child>
                     <div className="fixed inset-0 overflow-y-auto">
-                        <div className="flex min-h-full items-center justify-center p-4 text-center">
+                        <div className="flex items-center justify-center min-h-full p-4 text-center">
                             <Transition.Child
                                 as={React.Fragment}
                                 enter="ease-out duration-300"
@@ -136,15 +129,15 @@ const Component = ({ fetchingData }: Props) => {
                                 leaveFrom="opacity-100 scale-100"
                                 leaveTo="opacity-0 scale-95"
                             >
-                                <Dialog.Panel className="w-full transform rounded-lg bg-default p-6 text-left align-middle shadow-lg transition-all text-default max-w-xl">
+                                <Dialog.Panel className="w-full max-w-xl p-6 text-left align-middle transition-all transform rounded-lg shadow-lg bg-default text-default">
                                     <Dialog.Title
                                         as="h3"
-                                        className="text-lg leading-6 text-default mb-2 font-bold"
+                                        className="mb-2 text-lg font-bold leading-6 text-default"
                                     >
                                         {'Create new Space'}
                                         <button
                                             type="button"
-                                            className="text-default float-right"
+                                            className="float-right text-default"
                                             onClick={handleClose}
                                         >
                                             <XMarkIcon className="icon-x16" />
@@ -162,11 +155,11 @@ const Component = ({ fetchingData }: Props) => {
                                                 <input
                                                     id="name"
                                                     type="text"
-                                                    maxLength={32}
+                                                    maxLength={255}
                                                     title="Only alphanumeric characters are allowed."
                                                     placeholder="Space name"
                                                     value={space.name || ''}
-                                                    className="flex w-full bg-transparent text-xl outline-none text-default border-b border-transparent py-2 hover:border-b hover:border-default focus:border-b focus:border-blue-300"
+                                                    className="flex w-full py-2 text-xl bg-transparent border-b border-transparent outline-none text-default hover:border-b hover:border-default focus:border-b focus:border-blue-300"
                                                     autoComplete="off"
                                                     onChange={handleNameChange}
                                                 />
@@ -206,9 +199,9 @@ const Component = ({ fetchingData }: Props) => {
                                                         type="checkbox"
                                                         checked={assign.length > 0 ? false : space.isPrivate}
                                                         disabled={assign.length > 0}
-                                                        onChange={(event) => checkboxChange(event, setSpace)}
+                                                        onChange={(event) => setSpace({ ...space, isPrivate: event.target.checked })}
                                                     />
-                                                    <label htmlFor="isPrivate" className="label cursor-pointer inline-flex ml-1">{'Private'}</label>
+                                                    <label htmlFor="isPrivate" className="inline-flex ml-1 cursor-pointer label">{'Private'}</label>
                                                 </div>
                                             </Grid.Column>
                                         </Grid>
@@ -229,7 +222,7 @@ const Component = ({ fetchingData }: Props) => {
                                         </Grid>
                                         <Grid column={12} gap={1} className="mt-5 text-center">
                                             <Grid.Column sm={12} md={12} lg={12} xl={12} xxl={12}>
-                                                <button type="submit" className="button w-full bg-pink-400 hover:bg-pink-500 focus:bg-pink-500 text-white">{'Create'}</button>
+                                                <button type="submit" className="w-full text-white bg-pink-400 button hover:bg-pink-500 focus:bg-pink-500">{'Create'}</button>
                                             </Grid.Column>
                                         </Grid>
                                     </form>

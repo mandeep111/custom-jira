@@ -25,5 +25,5 @@ public class Milestone extends BaseEntity<String> {
 
     private String name;
     private Date deadlineDate;
-    private boolean isReached;
+    private Boolean isReached;
 }

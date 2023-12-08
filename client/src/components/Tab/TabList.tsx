@@ -9,8 +9,6 @@ import { setTaskId } from '../../redux/Task/actions';
 import { Alert } from '../Alert';
 import { FormTaskDetail } from '../Form';
 import { TodoItem, TodoStateList } from '../Todo';
-import { TaskStage } from '../../types/TaskStage';
-import { Task } from '../../types/Task';
 
 interface Props {
     taskStageList: TaskStage[];
@@ -49,7 +47,7 @@ const Component = ({ taskStageList, taskList, setTaskList, fetchTaskList }: Prop
     return (
         <React.Fragment>
             {projectId && projectUrl ? (
-                taskList.length !== 0 ? (
+                taskList && (taskList.length !== 0 ? (
                     <DndProvider backend={HTML5Backend}>
                         {Array.isArray(taskStageList) && taskStageList.map((taskStage, index) => (
                             <React.Fragment key={index}>
@@ -58,27 +56,30 @@ const Component = ({ taskStageList, taskList, setTaskList, fetchTaskList }: Prop
                                     task={returnItemsForColumn(taskStage.id!) ? returnItemsForColumn(taskStage.id!)?.length : null}
                                     state={taskStage.id!}
                                     color={taskStage.color!}
-                                    className="text-left text-md pl-4 border-l-8 border-t border-r border-b border-default rounded-lg rounded-l-none"
+                                    className="pl-4 text-left border-t border-b border-l-8 border-r rounded-lg rounded-l-none text-md border-default"
                                 >
                                     {
                                         returnItemsForColumn(taskStage.id!)?.length !== 0
-                                            ? <div className="overflow-y-scroll sm:max-h-96 2xl:max-h-128">
-                                                {returnItemsForColumn(taskStage.id!)}
-                                            </div>
-                                            : <Alert
-                                                icon={<InformationCircleIcon className="icon-x20 mr-2" />}
-                                                message={'There is no task for this stage.'}
-                                                className="text-default bg-default border border-default my-0"
-                                            />
+                                            ? (
+                                                <div className="overflow-y-scroll sm:max-h-96 2xl:max-h-128">
+                                                    {returnItemsForColumn(taskStage.id!)}
+                                                </div>
+                                            ) : (
+                                                <Alert
+                                                    icon={<InformationCircleIcon className="icon-x20" />}
+                                                    message={'There is no task for this stage.'}
+                                                    className="my-0 border text-default bg-default border-default"
+                                                />
+                                            )
                                     }
                                 </TodoStateList>
                             </React.Fragment>
                         ))}
                     </DndProvider>
                 ) : (
-                    <Alert icon={<InformationCircleIcon className="icon-x20 mr-2" />} message={'There are no tasks assigned to me.'} />
-                )) : (
-                <Alert icon={<InformationCircleIcon className="icon-x20 mr-2" />} message={'Please select project.'} />
+                    <Alert icon={<InformationCircleIcon className="icon-x20" />} message={'There are no tasks assigned to me.'} />
+                ))) : (
+                <Alert icon={<InformationCircleIcon className="icon-x20" />} message={'Please select project.'} />
             )}
             <FormTaskDetail fetchTaskList={fetchTaskList} />
         </React.Fragment>

@@ -4,6 +4,7 @@ import com.laconic.pcms.component.CommonComponent;
 import com.laconic.pcms.component.DuplicateComponent;
 import com.laconic.pcms.component.FavoriteComponent;
 import com.laconic.pcms.entity.*;
+import com.laconic.pcms.enums.NotificationType;
 import com.laconic.pcms.exceptions.PreconditionFailedException;
 import com.laconic.pcms.repository.*;
 import com.laconic.pcms.request.*;
@@ -11,7 +12,9 @@ import com.laconic.pcms.response.PaginationResponse;
 import com.laconic.pcms.response.ProjectResponse;
 import com.laconic.pcms.service.concrete.IProjectService;
 import com.laconic.pcms.utils.KeyCloakAuthenticationUtil;
+import com.laconic.pcms.utils.NotificationUtil;
 import jakarta.persistence.criteria.Predicate;
+import jakarta.transaction.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -19,7 +22,7 @@ import org.springframework.stereotype.Service;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Set;
 
 import static com.laconic.pcms.constants.AppMessages.*;
 import static com.laconic.pcms.utils.AutoMapper.convertList;
@@ -36,19 +39,23 @@ public class ProjectService implements IProjectService {
     private final IProjectRepo projectRepo;
     private final ITaskStageRepo taskStageRepo;
     private final ITaskRepo taskRepo;
+    private final ISubTaskRepo subTaskRepo;
     private final IUserRepo userRepo;
     private final DuplicateComponent duplicateComponent;
     private final FavoriteComponent favoriteComponent;
+    private final NotificationUtil notificationUtil;
     private final KeyCloakAuthenticationUtil keyCloakAuthenticationUtil;
 
-    public ProjectService(CommonComponent commonComponent, IProjectRepo projectRepo, ITaskStageRepo taskStageRepo, ITaskRepo taskRepo, IUserRepo userRepo, DuplicateComponent duplicateComponent, FavoriteComponent favoriteComponent, KeyCloakAuthenticationUtil keyCloakAuthenticationUtil) {
+    public ProjectService(CommonComponent commonComponent, IProjectRepo projectRepo, ITaskStageRepo taskStageRepo, ITaskRepo taskRepo, ISubTaskRepo subTaskRepo, IUserRepo userRepo, DuplicateComponent duplicateComponent, FavoriteComponent favoriteComponent, NotificationUtil notificationUtil, KeyCloakAuthenticationUtil keyCloakAuthenticationUtil) {
         this.commonComponent = commonComponent;
         this.projectRepo = projectRepo;
         this.taskStageRepo = taskStageRepo;
         this.taskRepo = taskRepo;
+        this.subTaskRepo = subTaskRepo;
         this.userRepo = userRepo;
         this.duplicateComponent = duplicateComponent;
         this.favoriteComponent = favoriteComponent;
+        this.notificationUtil = notificationUtil;
         this.keyCloakAuthenticationUtil = keyCloakAuthenticationUtil;
     }
 
@@ -56,9 +63,10 @@ public class ProjectService implements IProjectService {
     public void save(ProjectRequest request) {
         var space = commonComponent.getEntity(request.getSpaceId(), Space.class, SPACE);
         var project = convertObject(request, Project.class);
-        if (request.getUserId() != null) {
+        if (request.getUserId() != null) { // todo: remove if condition as manager is a mandatory field
             var user = userRepo.findByIdAndSpaces_Id(request.getUserId(), request.getSpaceId()).orElseThrow(throwNotFoundException(request.getUserId(), request.getSpaceId(), SPACE, USER));
             project.setUser(user); // manager
+//            notificationUtil.sendEmails(Set.of(user), NotificationType.project,project.getName(), request.getUrl());
         }
         if (request.getFolderId() != null) {
             var folder = commonComponent.getEntity(request.getFolderId(), Folder.class, FOLDER);
@@ -66,9 +74,7 @@ public class ProjectService implements IProjectService {
         }
         var projectStage = commonComponent.getEntity(request.getStageId(), Stage.class, STAGE);
         project.setStage(projectStage);
-        if (space.getIsPrivate() && !project.getIsPrivate()) {
-            throw new PreconditionFailedException("projects should be private in a private space"); // projects are private in a private space
-        }
+        project.setIsPrivate(space.getIsPrivate()); // define project visibility based on space
         project.setSpace(space);
         project.setStartDate(request.getStartDate());
         project.setDeadlineDate(request.getDeadlineDate());
@@ -148,6 +154,7 @@ public class ProjectService implements IProjectService {
     }
 
     @Override
+    @Transactional(rollbackOn = Exception.class)
     public void changeManager(ChangeManagerRequest request) {
         var newManager = this.userRepo.findById(request.newUserId()).orElseThrow(throwNotFoundException(request.newUserId(), USER));
         var project = this.projectRepo.findByIdAndUserId(request.projectId(), request.oldUserId()).orElseThrow(
@@ -156,6 +163,7 @@ public class ProjectService implements IProjectService {
             throw new PreconditionFailedException("User not present in this space");
         }
         project.setUser(newManager);
+//        notificationUtil.sendEmails(Set.of(newManager), NotificationType.project,project.getName(), project.getUrl());
         this.projectRepo.save(project);
     }
 
@@ -173,6 +181,14 @@ public class ProjectService implements IProjectService {
     @Override
     public void delete(Long id) {
         var result = getProject(id);
+        List<Task> tasks = this.taskRepo.findByProjectId(result.getId());
+        for (Task task : tasks) {
+            task.setActive(false);
+            List<SubTask> subTasks = this.subTaskRepo.findByTaskId(result.getId());
+            for (SubTask subTask : subTasks) {
+                subTask.setActive(false);
+            }
+        }
         result.setActive(false);
         this.projectRepo.save(result);
     }
@@ -187,6 +203,7 @@ public class ProjectService implements IProjectService {
     @Override
     public ProjectResponse duplicate(Long id) {
         var result = duplicateComponent.duplicateProject(id);
+//        notificationUtil.sendEmails(Set.of(result.getUser()), NotificationType.project,result.getName(), result.getUrl());
         return convertObject(result, ProjectResponse.class);
     }
 

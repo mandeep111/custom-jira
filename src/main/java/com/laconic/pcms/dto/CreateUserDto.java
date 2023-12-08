@@ -43,6 +43,9 @@ public class CreateUserDto {
     @JsonProperty("requiredActions")
     private List<String> requiredActions;
 
+    @JsonProperty("attributes")
+    private Map<String, String> attributes;
+
     @JsonProperty("credentials")
     private List<CredentialRepresentation> credentials;
 

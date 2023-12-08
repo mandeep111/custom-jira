@@ -1,20 +1,16 @@
 import { Dialog, Transition } from '@headlessui/react';
 import { CheckIcon, PencilIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import axios, { AxiosResponse } from 'axios';
 import React from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import useCheckboxChecked, { CheckboxCheckedHandler } from '../../hooks/useCheckboxChecked';
 import { setOpenFormEditSpace } from '../../redux/Dialog/actions';
 import { getOpenFormEditSpace } from '../../redux/Dialog/selectors';
 import { setEditSpace } from '../../redux/Edit/actions';
 import { getEditSpace } from '../../redux/Edit/selectors';
 import { getSpaceId, getSpaceName } from '../../redux/Sidebar/selectors';
-import Http from '../../services/Http';
-import { API } from '../../utils/api';
 import { Grid } from '../Grid';
 import { MenuUser } from '../Menu';
 import { PopoverColor } from '../Popover';
-import { Space } from '../../types/Space';
-import { Assign } from '../../types/Assign';
 
 interface Props {
     fetchMySpaceList: () => Promise<void>;
@@ -32,8 +28,6 @@ const initialSpaceState: Space = {
 
 const Component = ({ fetchMySpaceList, fetchFavSpaceList }: Props) => {
 
-    const checkboxChange: CheckboxCheckedHandler = useCheckboxChecked();
-
     const dispatch = useDispatch();
     const spaceId = useSelector(getSpaceId);
     const spaceName = useSelector(getSpaceName);
@@ -45,9 +39,9 @@ const Component = ({ fetchMySpaceList, fetchFavSpaceList }: Props) => {
 
     const fetchSpace = async () => {
         try {
-            const response: Space = await Http.get(`${API.SPACE}/${spaceId!}`);
-            setSpace(response);
-            setAssign(response.assignee);
+            const response: AxiosResponse<Space> = await axios.get(`${SERVER.API.SPACE}/${spaceId!}`);
+            setSpace(response.data);
+            setAssign(response.data.assignee);
         } catch (error) {
             throw new Error(error as string);
         }
@@ -80,7 +74,7 @@ const Component = ({ fetchMySpaceList, fetchFavSpaceList }: Props) => {
     const handleFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         try {
-            await Http.update(`${API.SPACE}/${spaceId!}`, space);
+            await axios.put(`${SERVER.API.SPACE}/${spaceId!}`, space);
             await fetchMySpaceList();
             await fetchFavSpaceList();
         } catch (error) {
@@ -140,7 +134,7 @@ const Component = ({ fetchMySpaceList, fetchFavSpaceList }: Props) => {
                         <div className="backdrop" />
                     </Transition.Child>
                     <div className="fixed inset-0 overflow-y-auto">
-                        <div className="flex min-h-full items-center justify-center p-4 text-center">
+                        <div className="flex items-center justify-center min-h-full p-4 text-center">
                             <Transition.Child
                                 as={React.Fragment}
                                 enter="ease-out duration-300"
@@ -150,15 +144,15 @@ const Component = ({ fetchMySpaceList, fetchFavSpaceList }: Props) => {
                                 leaveFrom="opacity-100 scale-100"
                                 leaveTo="opacity-0 scale-95"
                             >
-                                <Dialog.Panel className="w-full transform rounded-lg bg-default p-6 text-left align-middle shadow-lg transition-all text-default max-w-xl">
+                                <Dialog.Panel className="w-full max-w-xl p-6 text-left align-middle transition-all transform rounded-lg shadow-lg bg-default text-default">
                                     <Dialog.Title
                                         as="h3"
-                                        className="text-lg leading-6 text-default mb-2 font-bold"
+                                        className="mb-2 text-lg font-bold leading-6 text-default"
                                     >
                                         {spaceName}
                                         <button
                                             type="button"
-                                            className="text-default float-right"
+                                            className="float-right text-default"
                                             onClick={handleClose}
                                         >
                                             <XMarkIcon className="icon-x16" />
@@ -178,11 +172,11 @@ const Component = ({ fetchMySpaceList, fetchFavSpaceList }: Props) => {
                                                         <input
                                                             id="name"
                                                             type="text"
-                                                            maxLength={32}
+                                                            maxLength={255}
                                                             title="Only alphanumeric characters are allowed."
                                                             placeholder="Space name"
                                                             value={space.name || ''}
-                                                            className="flex w-full bg-transparent text-xl outline-none text-default border-b border-transparent py-2 hover:border-b hover:border-default focus:border-b focus:border-blue-300"
+                                                            className="flex w-full py-2 text-xl bg-transparent border-b border-transparent outline-none text-default hover:border-b hover:border-default focus:border-b focus:border-blue-300"
                                                             autoComplete="off"
                                                             onChange={handleNameChange}
                                                         />
@@ -190,7 +184,7 @@ const Component = ({ fetchMySpaceList, fetchFavSpaceList }: Props) => {
                                                 </Grid>
                                                 <Grid column={12} gap={1}>
                                                     <Grid.Column sm={2} md={2} lg={2} xl={2} xxl={2}>
-                                                        <MenuUser assign={assign} setAssign={setAssign} />
+                                                        <MenuUser assign={assign} setAssign={setAssign} type="UPDATE" />
                                                     </Grid.Column>
                                                     <Grid.Column sm={10} md={10} lg={10} xl={10} xxl={10} className="flex justify-end">
                                                         <div className="flex mt-2 -space-x-3">
@@ -222,9 +216,9 @@ const Component = ({ fetchMySpaceList, fetchFavSpaceList }: Props) => {
                                                                 type="checkbox"
                                                                 checked={assign && assign.length > 0 ? false : space.isPrivate}
                                                                 disabled={assign && assign.length > 0}
-                                                                onChange={(event) => checkboxChange(event, setSpace)}
+                                                                onChange={(event) => setSpace({ ...space, isPrivate: event.target.checked })}
                                                             />
-                                                            <label htmlFor="isPrivate" className="label cursor-pointer inline-flex ml-1">{'Private'}</label>
+                                                            <label htmlFor="isPrivate" className="inline-flex ml-1 cursor-pointer label">{'Private'}</label>
                                                         </div>
                                                     </Grid.Column>
                                                 </Grid>
@@ -248,15 +242,15 @@ const Component = ({ fetchMySpaceList, fetchFavSpaceList }: Props) => {
                                                                 <input
                                                                     id="url"
                                                                     type="text"
-                                                                    maxLength={32}
+                                                                    maxLength={255}
                                                                     title="Only alphanumeric characters are allowed."
                                                                     placeholder="URL"
                                                                     value={space.url || ''}
-                                                                    className="flex bg-transparent text-sm ml-3 mb-2 outline-none text-default border-b border-transparent py-2 hover:border-b hover:border-default focus:border-b focus:border-blue-300"
+                                                                    className="flex py-2 mb-2 ml-3 text-sm bg-transparent border-b border-transparent outline-none text-default hover:border-b hover:border-default focus:border-b focus:border-blue-300"
                                                                     autoComplete="off"
                                                                     onChange={handleNameChange}
                                                                 />
-                                                                <button type="button" className="ml-3 mb-1" onClick={() => dispatch(setEditSpace(false))} style={{ display: 'flex', alignItems: 'center' }}>
+                                                                <button type="button" className="mb-1 ml-3" onClick={() => dispatch(setEditSpace(false))} style={{ display: 'flex', alignItems: 'center' }}>
                                                                     <CheckIcon className="icon-x12" />
                                                                 </button>
                                                             </div>
@@ -265,7 +259,7 @@ const Component = ({ fetchMySpaceList, fetchFavSpaceList }: Props) => {
                                                                 <label htmlFor="name" className="label" style={{ marginLeft: '5px' }}>
                                                                     {'Link :'} {'/' + (space.url || 'your-url')}
                                                                 </label>
-                                                                <button type="button" className="ml-3 mb-1" onClick={() => dispatch(setEditSpace(true))} style={{ display: 'flex', alignItems: 'center' }}>
+                                                                <button type="button" className="mb-1 ml-3" onClick={() => dispatch(setEditSpace(true))} style={{ display: 'flex', alignItems: 'center' }}>
                                                                     <PencilIcon className="icon-x12" />
                                                                 </button>
                                                             </div>
@@ -274,7 +268,7 @@ const Component = ({ fetchMySpaceList, fetchFavSpaceList }: Props) => {
                                                 </Grid>
                                                 <Grid column={12} gap={1} className="mt-5 text-center">
                                                     <Grid.Column sm={12} md={12} lg={12} xl={12} xxl={12}>
-                                                        <button type="submit" className="button w-full bg-pink-400 hover:bg-pink-500 focus:bg-pink-500 text-white">{'Create'}</button>
+                                                        <button type="submit" className="w-full text-white bg-pink-400 button hover:bg-pink-500 focus:bg-pink-500">{'Update'}</button>
                                                     </Grid.Column>
                                                 </Grid>
                                             </React.Fragment>

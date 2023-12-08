@@ -12,6 +12,8 @@ public interface IMilestoneService {
     MileStoneResponse getById(Long id);
     PaginationResponse<MileStoneResponse> getAll(int pageNo, int pageSize, String keyword);
     List<MileStoneResponse> getAll();
-
     void delete(Long id);
+
+    PaginationResponse<MileStoneResponse> getAllByProjectId(int pageNo, int pageSize, String keyword, Long projectId);
+    void markAsReached(Long projectId, Long id);
 }

@@ -1,4 +1,5 @@
 import * as HeroIcons from '@heroicons/react/24/outline';
+import axios, { AxiosResponse } from 'axios';
 import React from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link, useParams } from 'react-router-dom';
@@ -8,11 +9,8 @@ import logoLight from '../../assets/logo-light.png';
 import { setToggle } from '../../redux/Sidebar/actions';
 import { getToggle } from '../../redux/Sidebar/selectors';
 import { setTheme } from '../../redux/Theme/actions';
-import FavoriteSpaceService from '../../services/FavoriteSpace';
-import SpaceService from '../../services/Space';
-import { Space } from '../../types/Space';
-import { ContextMenuFavoriteSpace, ContextMenuFolder, ContextMenuProject, ContextMenuSpace } from '../ContextMenu';
-import { FormChangeColorProject, FormChangeColorSpace, FormEditSpace, FormMoveFolder, FormMoveProject, FormNewFolder, FormNewProject, FormNewSpace, FormOpenFolder, FormRenameFolder, FormRenameProject, FormRenameSpace } from '../Form';
+import { ContextMenuFolder, ContextMenuProject, ContextMenuSpace } from '../ContextMenu';
+import * as Form from '../Form';
 import Data from './data';
 
 const Component = () => {
@@ -23,68 +21,53 @@ const Component = () => {
     const toggle = useSelector(getToggle);
 
     const [appearance, setAppearance] = React.useState<string>(localStorage.getItem('theme') || '');
+    const isDarkMode = appearance === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    document.documentElement.classList.toggle('dark', isDarkMode);
     const darkModeRef: React.RefObject<SVGSVGElement> = React.useRef(null);
     const lightModeRef: React.RefObject<SVGSVGElement> = React.useRef(null);
 
-    const handleSidebarToggle = () => {
-        dispatch(setToggle(!toggle));
-    };
-
-    if (appearance === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-        document.documentElement.classList.add('dark');
-    } else {
-        document.documentElement.classList.remove('dark');
-    }
-
-    const handleThemeToggle: () => void = () => {
-        darkModeRef.current?.classList.toggle('hidden');
-        lightModeRef.current?.classList.toggle('hidden');
-
-        if (appearance) {
-            if (appearance === 'light') {
-                document.documentElement.classList.add('dark');
-                dispatch(setTheme('dark'));
-                setAppearance('dark');
-                localStorage.setItem('theme', 'dark');
-            } else {
-                document.documentElement.classList.remove('dark');
-                dispatch(setTheme('light'));
-                setAppearance('light');
-                localStorage.setItem('theme', 'light');
-            }
-        } else {
-            if (document.documentElement.classList.contains('dark')) {
-                document.documentElement.classList.remove('dark');
-                dispatch(setTheme('light'));
-                setAppearance('light');
-                localStorage.setItem('theme', 'light');
-            } else {
-                document.documentElement.classList.add('dark');
-                dispatch(setTheme('dark'));
-                setAppearance('dark');
-                localStorage.setItem('theme', 'dark');
-            }
-        }
-    };
-
-    React.useEffect(() => {
-        if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-            lightModeRef.current?.classList.remove('hidden');
-        } else {
-            darkModeRef.current?.classList.remove('hidden');
-        }
-    }, []);
-
     const spaceRef = React.useRef<HTMLButtonElement | null>(null);
-    const favoriteSpaceRef = React.useRef<HTMLButtonElement | null>(null);
     const projectRef = React.useRef<HTMLButtonElement | null>(null);
     const folderRef = React.useRef<HTMLButtonElement | null>(null);
 
     const [mySpaceList, setMySpaceList] = React.useState<Space[]>([]);
     const [favSpaceList, setFavSpaceList] = React.useState<Space[]>([]);
 
-    const fetchMySpaceList = async () => await SpaceService.Fetch(setMySpaceList);
-    const fetchFavSpaceList = async () => await FavoriteSpaceService.Fetch(setFavSpaceList);
+    const fetchMySpaceList = async () => {
+        try {
+            const response: AxiosResponse<Space[]> = await axios.get(`${SERVER.API.SPACE}/all`);
+            setMySpaceList(response.data);
+        } catch (error) {
+            throw new Error(error as string);
+        }
+    };
+
+    const fetchFavSpaceList = async () => {
+        try {
+            const response: AxiosResponse<Space[]> = await axios.get(`${SERVER.API.USERPROFILE}/favorite/space`);
+            setFavSpaceList(response.data);
+        } catch (error) {
+            throw new Error(error as string);
+        }
+    };
+
+    const handleThemeToggle = () => {
+        const isDarkMode = document.documentElement.classList.toggle('dark');
+        const newTheme = isDarkMode ? 'dark' : 'light';
+
+        darkModeRef.current?.classList.toggle('hidden', !isDarkMode);
+        lightModeRef.current?.classList.toggle('hidden', isDarkMode);
+
+        dispatch(setTheme(newTheme));
+        setAppearance(newTheme);
+        localStorage.setItem('theme', newTheme);
+    };
+
+    React.useEffect(() => {
+        const isDarkTheme = localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        lightModeRef.current?.classList.toggle('hidden', !isDarkTheme);
+        darkModeRef.current?.classList.toggle('hidden', isDarkTheme);
+    }, []);
 
     React.useEffect(() => {
         void fetchMySpaceList();
@@ -93,7 +76,7 @@ const Component = () => {
 
     return (
         <React.Fragment>
-            <aside className={`fixed top-0 left-0 h-screen transition-transform -translate-x-full bg-default w-80 p-2 border-r border-default ${toggle ? '' : 'transform translate-x-0'}`}>
+            <aside className={`z-10 fixed top-0 left-0 h-screen transition-transform -translate-x-full bg-default w-80 p-2 border-r border-default ${toggle ? '' : 'transform translate-x-0'}`}>
                 <div className="flex items-center">
                     <Link to="/">
                         <img
@@ -104,18 +87,19 @@ const Component = () => {
                     </Link>
                     <div className="ml-auto">
                         <button type="button"
-                            className="button mr-1"
+                            className="mr-1 button"
                             onClick={handleThemeToggle}
                         >
-                            <HeroIcons.SunIcon ref={darkModeRef} className="hidden icon-x20 mr-0" />
-                            <HeroIcons.MoonIcon ref={lightModeRef} className="hidden icon-x20 mr-0" />
+                            <HeroIcons.SunIcon ref={darkModeRef} className="hidden mr-0 icon-x20" />
+                            <HeroIcons.MoonIcon ref={lightModeRef} className="hidden mr-0 icon-x20" />
                         </button>
-                        <button type="button" className="button" onClick={handleSidebarToggle}>
-                            <HeroIcons.ChevronDoubleLeftIcon className="icon-x20 mr-0" />
+                        <button type="button" className="button" onClick={() => dispatch(setToggle(!toggle))}>
+                            <HeroIcons.ChevronDoubleLeftIcon className="mr-0 icon-x20" />
                         </button>
                     </div>
                 </div>
-                <div className="relative mb-2">
+                <hr />
+                {/* <div className="relative mb-2">
                     <div className="absolute -inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-default">
                         <HeroIcons.MagnifyingGlassIcon className="icon-x16" />
                     </div>
@@ -124,9 +108,9 @@ const Component = () => {
                         className="text-default bg-default border border-default outline-none rounded-lg block w-full pl-10 p-2.5"
                         placeholder="Search"
                     />
-                </div>
+                </div> */}
                 <nav>
-                    <div className="sm:h-24 2xl:h-28 overflow-y-scroll">
+                    <div className="relative">
                         {Array.isArray(general) && general.map((data, index) => (
                             <Link to={data.url} key={index}
                                 className="flex items-center text-default py-2.5 px-4 rounded transition duration-200 hover:bg-default-faded">
@@ -137,7 +121,6 @@ const Component = () => {
                     <hr className="pb-2 mt-2" />
                     <SidebarSpace
                         spaceRef={spaceRef}
-                        favoriteSpaceRef={favoriteSpaceRef}
                         projectRef={projectRef}
                         folderRef={folderRef}
                         mySpaceList={mySpaceList}
@@ -145,24 +128,12 @@ const Component = () => {
                         fetchMySpaceList={fetchMySpaceList}
                     />
                 </nav>
-                <div className="block mt-auto">
+                <div className="mb-2">
                     <hr className="pb-2" />
-                    <button type="button" className="button">
-                        <HeroIcons.UserPlusIcon className="icon-x16" />
-                        <span>{'Invite'}</span>
-                    </button>
-                    <Link to="/logout"
-                        title="Logout"
-                        className="button float-right"
-                    >
-                        <HeroIcons.PowerIcon className="icon-x16 mr-0" />
+                    <Link to="/logout" title="Logout" className="button">
+                        <HeroIcons.PowerIcon className="mr-0 icon-x16" />
                     </Link>
                 </div>
-                <ContextMenuFavoriteSpace
-                    favoriteSpaceRef={favoriteSpaceRef}
-                    fetchMySpaceList={fetchMySpaceList}
-                    fetchFavSpaceList={fetchFavSpaceList}
-                />
                 <ContextMenuSpace
                     spaceRef={spaceRef}
                     fetchMySpaceList={fetchMySpaceList}
@@ -175,23 +146,24 @@ const Component = () => {
                 <ContextMenuProject
                     projectRef={projectRef}
                     fetchSpaceList={fetchMySpaceList}
+                    fetchFavSpaceList={fetchFavSpaceList}
                 />
             </aside>
             {/* Form Space */}
-            <FormNewSpace fetchingData={fetchMySpaceList} />
-            <FormEditSpace fetchMySpaceList={fetchMySpaceList} fetchFavSpaceList={fetchFavSpaceList} />
-            <FormRenameSpace fetchMySpaceList={fetchMySpaceList} fetchFavSpaceList={fetchFavSpaceList} />
-            <FormChangeColorSpace fetchMySpaceList={fetchMySpaceList} fetchFavSpaceList={fetchFavSpaceList} />
+            <Form.FormNewSpace fetchingData={fetchMySpaceList} />
+            <Form.FormEditSpace fetchMySpaceList={fetchMySpaceList} fetchFavSpaceList={fetchFavSpaceList} />
+            <Form.FormRenameSpace fetchMySpaceList={fetchMySpaceList} fetchFavSpaceList={fetchFavSpaceList} />
+            <Form.FormChangeColorSpace fetchMySpaceList={fetchMySpaceList} fetchFavSpaceList={fetchFavSpaceList} />
             {/* Form Project */}
-            <FormNewProject fetchingData={fetchMySpaceList} />
-            <FormRenameProject fetchMySpaceList={fetchMySpaceList} fetchFavSpaceList={fetchFavSpaceList} />
-            <FormMoveProject fetchMySpaceList={fetchMySpaceList} fetchFavSpaceList={fetchFavSpaceList} />
-            <FormChangeColorProject fetchMySpaceList={fetchMySpaceList} fetchFavSpaceList={fetchFavSpaceList} />
+            <Form.FormNewProject fetchingData={fetchMySpaceList} />
+            <Form.FormRenameProject fetchMySpaceList={fetchMySpaceList} fetchFavSpaceList={fetchFavSpaceList} />
+            <Form.FormMoveProject fetchMySpaceList={fetchMySpaceList} fetchFavSpaceList={fetchFavSpaceList} />
+            <Form.FormChangeColorProject fetchMySpaceList={fetchMySpaceList} fetchFavSpaceList={fetchFavSpaceList} />
             {/* Form Folder */}
-            <FormNewFolder fetchMySpaceList={fetchMySpaceList} fetchFavSpaceList={fetchFavSpaceList} />
-            <FormRenameFolder fetchMySpaceList={fetchMySpaceList} fetchFavSpaceList={fetchFavSpaceList} />
-            <FormOpenFolder fetchMySpaceList={fetchMySpaceList} fetchFavSpaceList={fetchFavSpaceList} />
-            <FormMoveFolder fetchMySpaceList={fetchMySpaceList} fetchFavSpaceList={fetchFavSpaceList} />
+            <Form.FormNewFolder fetchMySpaceList={fetchMySpaceList} fetchFavSpaceList={fetchFavSpaceList} />
+            <Form.FormRenameFolder fetchMySpaceList={fetchMySpaceList} fetchFavSpaceList={fetchFavSpaceList} />
+            <Form.FormOpenFolder fetchMySpaceList={fetchMySpaceList} fetchFavSpaceList={fetchFavSpaceList} />
+            <Form.FormMoveFolder fetchMySpaceList={fetchMySpaceList} fetchFavSpaceList={fetchFavSpaceList} />
         </React.Fragment>
     );
 };

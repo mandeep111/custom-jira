@@ -1,12 +1,9 @@
-import { Priority } from '../enum/Priority';
-import { Status } from '../enum/Status';
-import { Assign } from './Assign';
-import { SubTask } from './SubTask';
-import { Tags } from './Tag';
-
 /**
- * Represents a task with the following properties:
+ * Represents a task with the following properties
+ * 
  * @property {number | null} id - The unique identifier for the task (optional).
+ * @property {number | null} spaceId - The identifier of the space to which the task belongs (optional).
+ * @property {string | undefined} spaceName - The name of the space (optional).
  * @property {number | null} projectId - The identifier of the project to which the task belongs.
  * @property {string | undefined} projectName - The name of the project (optional).
  * @property {number} taskStageId - The identifier of the task stage to which the task belongs.
@@ -25,9 +22,13 @@ import { Tags } from './Tag';
  * @property {Date | string | null} start - The start date of the task (optional).
  * @property {Date | string | null} end - The end date of the task (optional).
  * @property {Assign[]} assignee - An array of assignees associated with the task.
+ * @property {string | undefined} url - The URL of the task (optional).
+ *
  */
-export type Task = {
+type Task = {
     id?: number | null;
+    spaceId?: number | null;
+    spaceName?: string;
     projectId: number | null;
     projectName?: string;
     taskStageId: number;
@@ -35,15 +36,16 @@ export type Task = {
     name: string;
     color: string;
     description: string;
-    priority: Priority;
+    priority: 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT';
     progress?: number;
     tags: Tags[];
-    subTasks?: SubTask[];
+    subTasks?: Subtask[];
     type?: string;
-    progressStatus?: Status;
+    progressStatus?: 'WAITING' | 'COMPLETED' | 'DOING' | 'CANCELLED';
     blocked?: boolean;
     closed?: boolean;
     start?: Date | string | null;
     end?: Date | string | null;
     assignee: Assign[];
+    url?: string;
 }

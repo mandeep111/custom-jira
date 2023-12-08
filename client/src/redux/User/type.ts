@@ -1,5 +1,3 @@
-import { User } from '../../types/User';
-
 export interface State {
     content: User[];
 }

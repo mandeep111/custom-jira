@@ -228,8 +228,9 @@ public class KeyCloakComponent {
         return this.userRepo.saveAndFlush(user);
     }
 
-    public static CreateUserDto mapToKeycloakUser(User user, String password) {
+    public static CreateUserDto mapToKeycloakUser(User user, String password, String defaultPage) {
         Map<String, Boolean> access = new HashMap<>();
+        Map<String, String> attributes = new HashMap<>();
         var names = splitFullName(user.getFullName());
         access.put("manageGroupMembership", true);
         access.put("view", true);
@@ -237,7 +238,7 @@ public class KeyCloakComponent {
         access.put("impersonate", true);
         access.put("manage", true);
         List<CredentialRepresentation> credentials = new ArrayList<>();
-
+        attributes.put("default_page", defaultPage);
 
         CredentialRepresentation credentialRepresentation = new
                 CredentialRepresentation();
@@ -254,6 +255,7 @@ public class KeyCloakComponent {
                 .firstName(names[0])
                 .lastName(names[0])
                 .credentials(credentials)
+                .attributes(attributes)
                 .realmRoles(null)
                 .access(access)
                 .build();

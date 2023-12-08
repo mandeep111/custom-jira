@@ -1,9 +1,6 @@
-import { Priority } from '../enum/Priority';
-import { Status } from '../enum/Status';
-import { Assign } from './Assign';
-
 /**
  * Represents a sub-task with the following properties:
+ * 
  * @property {number | null} id - The unique identifier for the sub-task (optional).
  * @property {number | null} taskId - The identifier of the parent task to which the sub-task belongs.
  * @property {string | undefined} taskName - The name of the parent task (optional).
@@ -25,21 +22,23 @@ import { Assign } from './Assign';
  * @property {Date | string | null} end - The end date of the sub-task (optional).
  * @property {number | null} assigneeId - The identifier of the assignee for the sub-task (optional).
  * @property {Assign | undefined} assignee - The assignee information (optional).
+ * @property {boolean} isBlocked - Indicates whether the sub-task is blocked by another task.
+ * @property {number | null} blockedBy - The identifier of the task that blocks the sub-task (optional).
  */
-export type SubTask = {
+type Subtask = {
     id?: number | null;
     taskId: number | null;
     taskName?: string;
-    projectId?: number;
+    projectId?: number | null;
     projectName?: string;
-    spaceId?: number;
+    spaceId?: number | null;
     spaceName?: string;
     name: string;
     color: string;
     description: string;
-    priority: Priority;
+    priority: 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT';
     type?: string;
-    status: Status;
+    status: 'WAITING' | 'COMPLETED' | 'DOING' | 'CANCELLED';
     formId: number | null;
     needApproval: boolean;
     requestCode: string;
@@ -48,4 +47,6 @@ export type SubTask = {
     end: Date | string | null;
     assigneeId: number | null;
     assignee?: Assign;
+    isBlocked: boolean;
+    blockedBy: number | null;
 }

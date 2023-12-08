@@ -1,17 +1,16 @@
 import { Dialog, Menu, Transition } from '@headlessui/react';
 import { UserPlusIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import axios, { AxiosResponse } from 'axios';
 import React from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import Datepicker, { DateValueType } from 'react-tailwindcss-datepicker';
+import { toast } from 'react-toastify';
 import { Priority } from '../../enum/Priority';
 import { Status } from '../../enum/Status';
 import { setOpenFormNewSubTask } from '../../redux/Dialog/actions';
 import { getOpenFormNewSubTask } from '../../redux/Dialog/selectors';
 import { setTaskId } from '../../redux/Task/actions';
-import Http from '../../services/Http';
-import { Assign } from '../../types/Assign';
-import { SubTask } from '../../types/SubTask';
-import { User } from '../../types/User';
-import { API } from '../../utils/api';
+import { ComboboxSubtask } from '../Combobox';
 import { Grid } from '../Grid';
 import { ListboxForm } from '../Listbox';
 import { PopoverColor } from '../Popover';
@@ -21,7 +20,7 @@ interface Props {
     fetchingData: () => Promise<void>;
 }
 
-const initialSubTaskState: SubTask = {
+const initialSubtaskState: Subtask = {
     taskId: null,
     name: '',
     description: '',
@@ -33,7 +32,14 @@ const initialSubTaskState: SubTask = {
     formId: null,
     start: null,
     end: null,
-    assigneeId: null
+    assigneeId: null,
+    isBlocked: false,
+    blockedBy: null,
+};
+
+const initialDateState: DateValueType = {
+    startDate: null,
+    endDate: null
 };
 
 const Component = ({ taskId, fetchingData }: Props) => {
@@ -43,13 +49,16 @@ const Component = ({ taskId, fetchingData }: Props) => {
 
     const [form, setForm] = React.useState<number | null>(null);
     const [userList, setUserList] = React.useState<User[]>();
-    const [isCheckUser, setIsCheckUser] = React.useState<boolean>(false);
     const [assign, setAssign] = React.useState<Assign>();
-    const [subTask, setSubTask] = React.useState<SubTask>(initialSubTaskState);
+    const [subtask, setSubtask] = React.useState<Subtask>(initialSubtaskState);
+    const [subTaskList, setSubTaskList] = React.useState<Subtask[]>([]);
+    const [date, setDate] = React.useState<DateValueType>(initialDateState);
+    const [isBlocked, setIsBlocked] = React.useState<boolean>(false);
+    const [blockedBy, setBlockedBy] = React.useState<number | null>(null);
 
     const handleColorChange = (event: React.MouseEvent<HTMLButtonElement>) => {
         const target = event.currentTarget;
-        setSubTask((prevState) => ({
+        setSubtask((prevState) => ({
             ...prevState,
             color: target.value
         }));
@@ -63,10 +72,19 @@ const Component = ({ taskId, fetchingData }: Props) => {
         }));
     };
 
+    const fetchSubTaskList = async () => {
+        try {
+            const response: AxiosResponse<Task> = await axios.get(`${SERVER.API.TASK}/${taskId!}`);
+            setSubTaskList(response.data.subTasks!);
+        } catch (error) {
+            throw new Error(error as string);
+        }
+    };
+
     const fetchUser = async () => {
         try {
-            const response: User[] = await Http.getById(`${API.USER}/all-by-task/${taskId!}`);
-            setUserList(response);
+            const response: AxiosResponse<User[]> = await axios.get(`${SERVER.API.USER}/all-by-task/${taskId!}`);
+            setUserList(response.data);
         } catch (error) {
             throw new Error(error as string);
         }
@@ -74,46 +92,63 @@ const Component = ({ taskId, fetchingData }: Props) => {
 
     const handleClose = () => {
         dispatch(setTaskId(null));
-        setSubTask(initialSubTaskState);
+        setSubtask(initialSubtaskState);
+        setDate(initialDateState);
+        setAssign(undefined);
+        setBlockedBy(null);
+        setIsBlocked(false);
         dispatch(setOpenFormNewSubTask(false));
     };
 
     const handleFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
+        if (date === null || date.startDate === null || date.endDate === null) {
+            toast.error('Please select date');
+            return;
+        }
+        if (subtask.assigneeId === null) {
+            toast.error('Please select assignee');
+            return;
+        }
         try {
-            await Http.create(API.SUBTASK, subTask);
+            await axios.post(SERVER.API.SUBTASK, subtask);
             await fetchingData();
         } catch (error) {
             throw new Error(error as string);
         }
         finally {
             handleClose();
+            void fetchingData();
         }
     };
 
     React.useEffect(() => {
-        if (isCheckUser) {
+        if (taskId) {
             void fetchUser();
-            setIsCheckUser(false);
+            void fetchSubTaskList();
         }
-    }, [isCheckUser]);
+    }, [taskId]);
 
     React.useEffect(() => {
-        setSubTask((prevState) => ({
+        setSubtask((prevState) => ({
             ...prevState,
             formId: Number(form)
         }));
     }, [form]);
 
     React.useEffect(() => {
-        setSubTask((prevState) => ({
+        setSubtask((prevState) => ({
             ...prevState,
-            taskId: taskId
+            taskId,
+            isBlocked,
+            blockedBy,
+            start: date?.startDate as Date,
+            end: date?.endDate as Date,
         }));
-    }, [taskId]);
+    }, [taskId, date, isBlocked, blockedBy]);
 
     React.useEffect(() => {
-        assign && setSubTask((prevState) => ({
+        assign && setSubtask((prevState) => ({
             ...prevState,
             assigneeId: assign.id!
         }));
@@ -122,7 +157,7 @@ const Component = ({ taskId, fetchingData }: Props) => {
     return (
         <React.Fragment>
             <Transition appear show={isOpen} as={React.Fragment}>
-                <Dialog as="div" className="relative z-10" onClose={() => dispatch(setOpenFormNewSubTask(false))}>
+                <Dialog as="div" className="relative z-10" onClose={handleClose}>
                     <Transition.Child
                         as={React.Fragment}
                         enter="ease-out duration-300"
@@ -135,7 +170,7 @@ const Component = ({ taskId, fetchingData }: Props) => {
                         <div className="backdrop" />
                     </Transition.Child>
                     <div className="fixed inset-0 overflow-y-auto">
-                        <div className="flex min-h-full items-center justify-center p-4 text-center">
+                        <div className="flex items-center justify-center min-h-full p-4 text-center">
                             <Transition.Child
                                 as={React.Fragment}
                                 enter="ease-out duration-300"
@@ -145,16 +180,16 @@ const Component = ({ taskId, fetchingData }: Props) => {
                                 leaveFrom="opacity-100 scale-100"
                                 leaveTo="opacity-0 scale-95"
                             >
-                                <Dialog.Panel className="w-full transform overflow-hidden rounded-lg bg-default p-6 text-left align-middle shadow-lg transition-all text-default max-w-xl">
+                                <Dialog.Panel className="w-full max-w-xl p-6 text-left align-middle transition-all transform rounded-lg shadow-lg bg-default text-default">
                                     <Dialog.Title
                                         as="h3"
-                                        className="text-lg leading-6 text-default mb-2 font-bold"
+                                        className="mb-2 text-lg font-bold leading-6 text-default"
                                     >
-                                        {'Create new Subtask'}
+                                        {'Create New Subtask'}
                                         <button
                                             type="button"
-                                            className="text-default float-right"
-                                            onClick={() => dispatch(setOpenFormNewSubTask(false))}
+                                            className="float-right text-default"
+                                            onClick={handleClose}
                                         >
                                             <XMarkIcon className="icon-x16" />
                                         </button>
@@ -163,19 +198,59 @@ const Component = ({ taskId, fetchingData }: Props) => {
                                     <form onSubmit={(event) => void handleFormSubmit(event)}>
                                         <Grid column={12} gap={1}>
                                             <Grid.Column sm={12} md={12} lg={12} xl={12} xxl={12}>
-                                                <PopoverColor color={subTask.color} onChange={handleColorChange} />
+                                                <div className="flex justify-between">
+                                                    <PopoverColor color={subtask.color} onClick={handleColorChange} />
+                                                </div>
+                                            </Grid.Column>
+                                        </Grid>
+                                        <Grid column={12} gap={1}>
+                                            <Grid.Column sm={6} md={6} lg={6} xl={6} xxl={6}>
+                                                <Datepicker
+                                                    value={date}
+                                                    onChange={setDate}
+                                                    primaryColor={'pink'}
+                                                    showShortcuts={true}
+                                                    showFooter={true}
+                                                    displayFormat={'DD/MM/YYYY'}
+                                                    inputClassName="inline-block pt-5 pb-3 w-full bg-default outline-none text-default border-b border-transparent text-xs cursor-pointer"
+                                                    popoverDirection="down"
+                                                    useRange={false}
+                                                    // i18n={'en'}
+                                                    configs={{
+                                                        shortcuts: {
+                                                            today: 'Today',
+                                                            weekDa: {
+                                                                text: 'Week',
+                                                                period: {
+                                                                    start: new Date().toDateString(),
+                                                                    end: (() => {
+                                                                        const endDate = new Date();
+                                                                        endDate.setDate(endDate.getDate() + 7);
+                                                                        return endDate.toDateString();
+                                                                    })(),
+                                                                },
+                                                            },
+                                                            currentMonth: 'This Month',
+                                                        },
+                                                        // footer: {
+                                                        //     cancel: 'CText',
+                                                        //     apply: 'AText'
+                                                        // }
+                                                    }}
+                                                    readOnly
+                                                />
                                             </Grid.Column>
                                         </Grid>
                                         <Grid column={12} gap={1} className="mt-5">
                                             <Grid.Column sm={12} md={12} lg={12} xl={12} xxl={12}>
                                                 <input
                                                     type="text"
-                                                    maxLength={32}
-                                                    value={subTask.name || ''}
-                                                    placeholder="Task name"
-                                                    className="flex w-full bg-transparent text-xl outline-none text-default border-b border-transparent py-2 hover:border-b hover:border-default focus:border-b focus:border-blue-300"
+                                                    maxLength={255}
+                                                    value={subtask.name || ''}
+                                                    placeholder="SubTask Name"
+                                                    className="flex w-full py-2 text-xl bg-transparent border-b border-transparent outline-none text-default hover:border-b hover:border-default focus:border-b focus:border-blue-300"
                                                     autoComplete="off"
-                                                    onChange={(event) => setSubTask({ ...subTask, name: event.target.value })}
+                                                    onChange={(event) => setSubtask({ ...subtask, name: event.target.value })}
                                                 />
                                             </Grid.Column>
                                         </Grid>
@@ -185,7 +260,7 @@ const Component = ({ taskId, fetchingData }: Props) => {
                                                     <Menu as="div" className="relative inline-block text-left">
                                                         <div>
                                                             <Menu.Button className="flex items-center">
-                                                                <UserPlusIcon className="icon-x20 mt-2" fill="transparent" onClick={() => setIsCheckUser(true)} />
+                                                                <UserPlusIcon className="mt-2 icon-x20" fill="transparent" />
                                                             </Menu.Button>
                                                         </div>
                                                         <Transition
@@ -197,14 +272,14 @@ const Component = ({ taskId, fetchingData }: Props) => {
                                                             leaveFrom="transform opacity-100 scale-100"
                                                             leaveTo="transform opacity-0 scale-95"
                                                         >
-                                                            <Menu.Items className="absolute mt-2 w-64 origin-top-left divide-y divide-gray-100 rounded-md bg-default shadow-lg border border-default">
-                                                                <div className="px-1 py-1 max-h-40 overflow-y-scroll">
+                                                            <Menu.Items className="absolute w-64 mt-2 origin-top-left border divide-y divide-gray-100 rounded-md shadow-lg bg-default border-default">
+                                                                <div className="px-1 py-1 overflow-y-scroll max-h-40">
                                                                     <React.Fragment>
                                                                         {Array.isArray(userList) && userList.map((user: User, index: number) => (
                                                                             <Menu.Item key={index}>
                                                                                 <React.Fragment>
                                                                                     <div
-                                                                                        className="group text-default flex w-full items-center rounded-md px-2 py-2 text-sm hover:bg-default-faded cursor-pointer"
+                                                                                        className="flex items-center w-full px-2 py-2 text-sm rounded-md cursor-pointer group text-default hover:bg-default-faded"
                                                                                         onClick={() => handleAssignClick(user.id, user.fullName)}
                                                                                     >
                                                                                         {user.fullName}
@@ -221,9 +296,9 @@ const Component = ({ taskId, fetchingData }: Props) => {
                                             </Grid.Column>
                                             <Grid.Column sm={2} md={2} lg={2} xl={2} xxl={2}>
                                                 {assign && (
-                                                    <div className="flex grid-cols-1  justify-items-start  whitespace-nowrap overflow-hidden">
+                                                    <div className="flex overflow-hidden justify-items-start whitespace-nowrap">
                                                         <span
-                                                            className="w-7 h-7 px-2.5 py-1.5 text-xs rounded-full bg-yellow-500 border border-zinc-300 align-middle items-center flex text-center justify-center text-zinc-50 font-bold"
+                                                            className="w-7 h-7 px-2.5 py-1.5 text-xs rounded-full bg-orange-600 border border-zinc-300 align-middle items-center flex text-center justify-center text-zinc-50 font-bold"
                                                             title={assign.fullName}
                                                         >
                                                             {assign.fullName.toUpperCase().charAt(0)}
@@ -236,57 +311,53 @@ const Component = ({ taskId, fetchingData }: Props) => {
                                             <Grid.Column sm={12} md={12} lg={12} xl={12} xxl={12}>
                                                 <textarea
                                                     id="description"
-                                                    value={subTask.description || ''}
-                                                    className="flex w-full bg-transparent outline-none text-default border-b border-transparent py-2 hover:border-b hover:border-default focus:border-b focus:border-blue-300"
-                                                    placeholder="Write something about this task..."
+                                                    value={subtask.description || ''}
+                                                    className="flex w-full py-2 bg-transparent border-b border-transparent outline-none text-default hover:border-b hover:border-default focus:border-b focus:border-blue-300"
+                                                    placeholder="Write something about this Subtask..."
                                                     rows={5}
-                                                    onChange={(event) => setSubTask({ ...subTask, description: event.target.value })}
+                                                    onChange={(event) => setSubtask({ ...subtask, description: event.target.value })}
                                                 />
                                             </Grid.Column>
                                         </Grid>
-                                        <Grid column={12} gap={1} className="mt-5 text-center">
-                                            <Grid.Column sm={1} md={1} lg={1} xl={1} xxl={1}>
-                                                <label htmlFor="start" className="label mt-2.5">{'Start'}</label>
-                                            </Grid.Column>
-                                            <Grid.Column sm={5} md={5} lg={5} xl={5} xxl={5}>
-                                                <input
-                                                    type="date"
-                                                    value={subTask.start ? new Date(subTask.start).toISOString().substr(0, 10) : ''}
-                                                    className="flex w-full bg-transparent outline-none text-default border-b border-transparent py-2 hover:border-b hover:border-default focus:border-b focus:border-blue-300"
-                                                    onChange={(event) => setSubTask({ ...subTask, start: event.target.value })}
-                                                />
-                                            </Grid.Column>
-                                            <Grid.Column sm={1} md={1} lg={1} xl={1} xxl={1}>
-                                                <label htmlFor="start" className="label mt-2.5">{'End'}</label>
-                                            </Grid.Column>
-                                            <Grid.Column sm={5} md={5} lg={5} xl={5} xxl={5}>
-                                                <input
-                                                    type="date"
-                                                    value={subTask.end ? new Date(subTask.end).toISOString().substr(0, 10) : ''}
-                                                    className="flex w-full bg-transparent outline-none text-default border-b border-transparent py-2 hover:border-b hover:border-default focus:border-b focus:border-blue-300"
-                                                    onChange={(event) => setSubTask({ ...subTask, end: event.target.value })}
-                                                />
-                                            </Grid.Column>
-                                        </Grid>
-                                        <Grid column={12} gap={1} className="mt-5 text-center">
-                                            <Grid.Column sm={8} md={8} lg={8} xl={8} xxl={8}>
-                                                <ListboxForm setForm={setForm} />
-                                            </Grid.Column>
+                                        <Grid column={12} gap={1} className="flex items-center mt-5">
                                             <Grid.Column sm={4} md={4} lg={4} xl={4} xxl={4}>
                                                 <div className="checkbox-group">
                                                     <input
-                                                        id="needApproval"
+                                                        id="isFirst"
                                                         type="checkbox"
-                                                        checked={subTask.needApproval}
-                                                        onChange={(event) => setSubTask({ ...subTask, needApproval: event.target.checked })}
+                                                        checked={isBlocked ? true : false}
+                                                        onChange={(event) => setIsBlocked(event.target.checked)}
                                                     />
-                                                    <label htmlFor="needApproval" className="label cursor-pointer inline-flex ml-1">{'Need Approval'}</label>
+                                                    <label htmlFor="isFirst" className="inline-flex ml-1 cursor-pointer label">{'Do it first.'}</label>
                                                 </div>
                                             </Grid.Column>
+                                            <Grid.Column sm={8} md={8} lg={8} xl={8} xxl={8}>
+                                                {isBlocked && (
+                                                    <ComboboxSubtask subTaskList={subTaskList} setBlockedBy={setBlockedBy} />
+                                                )}
+                                            </Grid.Column>
                                         </Grid>
+                                        {WORKFLOW_ENABLED && (
+                                            <Grid column={12} gap={1} className="mt-5 text-center">
+                                                <Grid.Column sm={8} md={8} lg={8} xl={8} xxl={8}>
+                                                    <ListboxForm setForm={setForm} />
+                                                </Grid.Column>
+                                                <Grid.Column sm={4} md={4} lg={4} xl={4} xxl={4}>
+                                                    <div className="checkbox-group">
+                                                        <input
+                                                            id="needApproval"
+                                                            type="checkbox"
+                                                            checked={subtask.needApproval}
+                                                            onChange={(event) => setSubtask({ ...subtask, needApproval: event.target.checked })}
+                                                        />
+                                                        <label htmlFor="needApproval" className="inline-flex ml-1 cursor-pointer label">{'Need Approval'}</label>
+                                                    </div>
+                                                </Grid.Column>
+                                            </Grid>
+                                        )}
                                         <Grid column={12} gap={1} className="mt-5 text-center">
                                             <Grid.Column sm={12} md={12} lg={12} xl={12} xxl={12}>
-                                                <button type="submit" className="button w-full bg-pink-400 hover:bg-pink-500 focus:bg-pink-500 text-white">{'Create'}</button>
+                                                <button type="submit" className="w-full text-white bg-pink-400 button hover:bg-pink-500 focus:bg-pink-500">{'Create'}</button>
                                             </Grid.Column>
                                         </Grid>
                                     </form>

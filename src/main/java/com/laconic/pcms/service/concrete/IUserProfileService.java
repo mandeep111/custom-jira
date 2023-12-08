@@ -20,7 +20,6 @@ public interface IUserProfileService {
     Map<String, Integer> getProfileCounts();
     Map<UserResponse, Map<String, Long>> getUserWorkload(Long spaceId, Date startDate, Date endDate);
     List<Map<UserResponse, Map<String, Long>>> getUserWorkloads(Date startDate, Date endDate);
-
     Map<UserResponse, Map<ProgressStatus, Long>> getUserSubTasksByProject(Long projectId, Date startDate, Date endDate);
     Map<UserResponse, Map<ProgressStatus, Long>> getUserSubTasksBySpace(Long spaceId, Date startDate, Date endDate);
     Map<UserResponse, Map<ProgressStatus, Long>> getAllSubTasks(Date startDate, Date endDate);

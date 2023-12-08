@@ -1,8 +1,6 @@
-import { Task } from './Task';
-import { TaskStage } from './TaskStage';
-
 /**
- * Represents a project with the following properties:
+ * Represents a project with the following properties
+ * 
  * @property {number | null} id - The unique identifier for the project. It can be a number or null.
  * @property {number | null} companyId - The identifier of the company to which the project belongs (optional).
  * @property {string | undefined} companyName - The name of the company (optional).
@@ -31,7 +29,7 @@ import { TaskStage } from './TaskStage';
  * @property {boolean | undefined} isFavorite - Indicates whether the project is marked as a favorite (optional).
  * @property {boolean | undefined} isActive - Indicates whether the project is active or not (optional).
  */
-export type Project = {
+type Project = {
     id: number | null;
     companyId?: number | null;
     companyName?: string;

@@ -2,8 +2,7 @@
  * Represents the base URL for the API endpoints.
  * @constant {string}
  */
-// export const BASE_URL: string = import.meta.env.VITE_SERVER_URL;
-export const BASE_URL: string = 'http://localhost:8080';
+export const BASE_URL: string = import.meta.env.VITE_SERVER_URL;
 
 /**
  * Represents the types of API endpoints available in the application.

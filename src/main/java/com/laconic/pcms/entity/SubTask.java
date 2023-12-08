@@ -38,6 +38,7 @@ public class SubTask extends BaseEntity<String> {
     private Date deadlineDate;
     private Date assignedDate;
     private Boolean isBlocked;
+    private Long blockedBy;
     private Boolean isClosed;
     @Enumerated(EnumType.STRING)
     private TaskPriority priority;

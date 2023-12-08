@@ -1,14 +1,13 @@
 import { Menu, Transition } from '@headlessui/react';
 import * as HeroIcons from '@heroicons/react/24/outline';
+import { StarIcon } from '@heroicons/react/24/solid';
+import axios from 'axios';
 import React from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { setOpenFormChangeColorSpace, setOpenFormEditSpace, setOpenFormNewFolder, setOpenFormNewProject, setOpenFormRenameSpace } from '../../redux/Dialog/actions';
 import { setFolderId } from '../../redux/Sidebar/actions';
-import { getMouseX, getMouseY, getSpaceId, getSpaceUrl } from '../../redux/Sidebar/selectors';
-import Http from '../../services/Http';
-import { ContextMenu } from '../../types/ContextMenu';
-import { API } from '../../utils/api';
+import { getFavoriteSpace, getMouseX, getMouseY, getSpaceId, getSpaceUrl } from '../../redux/Sidebar/selectors';
 
 interface Props {
     spaceRef: React.MutableRefObject<HTMLButtonElement | null>;
@@ -24,6 +23,7 @@ const Component = ({ spaceRef, fetchMySpaceList, fetchFavSpaceList }: Props) => 
 
     const spaceId = useSelector(getSpaceId);
     const spaceUrl = useSelector(getSpaceUrl);
+    const spaceFav = useSelector(getFavoriteSpace);
     const mouseX = useSelector(getMouseX);
     const mouseY = useSelector(getMouseY);
 
@@ -44,7 +44,7 @@ const Component = ({ spaceRef, fetchMySpaceList, fetchFavSpaceList }: Props) => 
         { title: 'Color', fnc: () => dispatch(setOpenFormChangeColorSpace(true)), icon: () => <HeroIcons.PaintBrushIcon className="icon-x16" />, class: 'text-default', child: [], break: false },
         { title: 'Copy link', fnc: () => handleCopyLink(), icon: () => <HeroIcons.LinkIcon className="icon-x16" />, class: 'text-default', child: [], break: false },
         { title: 'Duplicate', fnc: () => void handleDuplicate(), icon: () => <HeroIcons.Square2StackIcon className="icon-x16" />, class: 'text-default', child: [], break: true },
-        { title: 'Add to favorites', fnc: () => void handleAddFavorite(), icon: () => <HeroIcons.StarIcon className="icon-x16" />, class: 'text-default', child: [], break: true },
+        { title: spaceFav ? 'Unfavorite' : 'Add to favorites', fnc: () => spaceFav ? void handleRemoveFavorite() : void handleAddFavorite(), icon: () => spaceFav ? <StarIcon className="text-yellow-400 icon-x16" /> : <HeroIcons.StarIcon className="icon-x16" />, class: 'text-default', child: [], break: true },
         { title: 'Delete', fnc: () => void handleDelete(), icon: () => <HeroIcons.TrashIcon className="icon-x16" />, class: 'text-red-400', child: [], break: false },
     ];
 
@@ -52,8 +52,19 @@ const Component = ({ spaceRef, fetchMySpaceList, fetchFavSpaceList }: Props) => 
 
     const handleAddFavorite = async () => {
         try {
-            await Http.create(`${API.SPACE}/favorite/${spaceId!}`, null);
+            await axios.post(`${SERVER.API.SPACE}/favorite/${spaceId!}`);
             await fetchFavSpaceList();
+            await fetchMySpaceList();
+        } catch (error) {
+            throw new Error(error as string);
+        }
+    };
+
+    const handleRemoveFavorite = async () => {
+        try {
+            await axios.delete(`${SERVER.API.SPACE}/favorite/${spaceId!}`);
+            await fetchFavSpaceList();
+            await fetchMySpaceList();
         } catch (error) {
             throw new Error(error as string);
         }
@@ -71,7 +82,7 @@ const Component = ({ spaceRef, fetchMySpaceList, fetchFavSpaceList }: Props) => 
 
     const handleDuplicate = async () => {
         try {
-            await Http.duplicate(`${API.SPACE}/duplicate/${spaceId!}`);
+            await axios.post(`${SERVER.API.SPACE}/duplicate/${spaceId!}`);
             await fetchFavSpaceList();
             await fetchMySpaceList();
         } catch (error) {
@@ -81,7 +92,7 @@ const Component = ({ spaceRef, fetchMySpaceList, fetchFavSpaceList }: Props) => 
 
     const handleDelete = async () => {
         try {
-            await Http.remove(`${API.SPACE}/${spaceId!}`);
+            await axios.delete(`${SERVER.API.SPACE}/${spaceId!}`);
             await fetchFavSpaceList();
             await fetchMySpaceList();
             navigate('/no-space');
@@ -93,7 +104,7 @@ const Component = ({ spaceRef, fetchMySpaceList, fetchFavSpaceList }: Props) => 
     return (
         <React.Fragment>
             <div className="text-right">
-                <Menu as="span" className="relative inline-block text-left ml-auto">
+                <Menu as="span" className="relative inline-block ml-auto text-left">
                     <Menu.Button ref={spaceRef} className="flex items-center" />
                     <Transition
                         as={React.Fragment}
@@ -104,7 +115,7 @@ const Component = ({ spaceRef, fetchMySpaceList, fetchFavSpaceList }: Props) => 
                         leaveFrom="transform opacity-100 scale-100"
                         leaveTo="transform opacity-0 scale-95"
                     >
-                        <Menu.Items className="absolute mt-2 w-64 origin-top-left divide-y divide-gray-100 rounded-md bg-default shadow-lg border border-default" style={{ top: mouseY!, left: mouseX! }}>
+                        <Menu.Items className="absolute w-64 mt-2 origin-top-left border divide-y divide-gray-100 rounded-md shadow-lg bg-default border-default" style={{ top: mouseY!, left: mouseX! }}>
                             <div className="px-1 py-1">
                                 {spaceContextMenu.map((context, index) => (
                                     <React.Fragment key={index}>
@@ -123,7 +134,7 @@ const Component = ({ spaceRef, fetchMySpaceList, fetchFavSpaceList }: Props) => 
                                                         {context.icon && context.icon()}
                                                         {context.title}
                                                         {context.child && context.child.length > 0 ? (
-                                                            <Menu as="div" className="relative inline-block text-left ml-auto">
+                                                            <Menu as="div" className="relative inline-block ml-auto text-left">
                                                                 <Menu.Button
                                                                     ref={contextCreateRef}
                                                                     className="flex items-center"
@@ -139,7 +150,7 @@ const Component = ({ spaceRef, fetchMySpaceList, fetchFavSpaceList }: Props) => 
                                                                     leaveFrom="transform opacity-100 scale-100"
                                                                     leaveTo="transform opacity-0 scale-95"
                                                                 >
-                                                                    <Menu.Items className="absolute -left-4 top-4 mt-2 w-64 origin-top-left divide-y divide-gray-100 rounded-md bg-default shadow-lg border border-default">
+                                                                    <Menu.Items className="absolute w-64 mt-2 origin-top-left border divide-y divide-gray-100 rounded-md shadow-lg -left-4 top-4 bg-default border-default">
                                                                         <div className="px-1 py-1">
                                                                             {context.child.map((child, index) => (
                                                                                 <React.Fragment key={index}>
@@ -156,7 +167,7 @@ const Component = ({ spaceRef, fetchMySpaceList, fetchFavSpaceList }: Props) => 
                                                                                             </span>
                                                                                         )}
                                                                                     </Menu.Item>
-                                                                                    {child.break ? <hr /> : null}
+                                                                                    {child.break && <hr />}
                                                                                 </React.Fragment>
                                                                             ))}
                                                                         </div>
@@ -168,15 +179,15 @@ const Component = ({ spaceRef, fetchMySpaceList, fetchFavSpaceList }: Props) => 
                                                 </React.Fragment>
                                             )}
                                         </Menu.Item>
-                                        {context.break ? <hr /> : null}
+                                        {context.break && <hr />}
                                     </React.Fragment>
                                 ))}
                             </div>
                         </Menu.Items>
                     </Transition>
                 </Menu>
-            </div >
-        </React.Fragment >
+            </div>
+        </React.Fragment>
     );
 };
 

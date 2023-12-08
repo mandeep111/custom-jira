@@ -29,6 +29,7 @@ public class SubTaskRequest {
     @JsonProperty(value = "start")
     private Date assignedDate;
     private Boolean isBlocked;
+    private Long blockedBy;
     private Boolean isClosed;
     @JsonProperty(value = "assigneeId")
     Long userId;

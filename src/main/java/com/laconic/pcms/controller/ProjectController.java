@@ -154,14 +154,14 @@ public class ProjectController {
         return ResponseEntity.ok(this.projectService.getProjectReportByCompany(request));
     }
 
-    @PostMapping("/favorite/{projectId}")
-    public void makeFavorite(@PathVariable Long projectId) {
-        this.favoriteProjectService.addToFavorite(projectId);
+    @PostMapping("/favorite/{id}")
+    public void makeFavorite(@PathVariable Long id) {
+        this.favoriteProjectService.addToFavorite(id);
     }
 
-    @DeleteMapping("/remove-favorite/{projectId}")
-    public void removeFavorite(@PathVariable Long projectId) {
-        this.favoriteProjectService.removeFromFavorite(projectId);
+    @DeleteMapping("/favorite/{id}")
+    public void removeFavorite(@PathVariable Long id) {
+        this.favoriteProjectService.removeFromFavorite(id);
     }
 
 }

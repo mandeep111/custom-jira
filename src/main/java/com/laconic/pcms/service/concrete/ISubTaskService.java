@@ -18,9 +18,10 @@ public interface ISubTaskService {
     List<SubTaskResponse> getAllBySpace(Long id, Date startDate, Date endDate);
     SubTaskResponse getById(Jwt jwt, Long id);
 
-    void changeStatus(Long id, ProgressStatus status);
+    void changeStatus(String email, Long id, ProgressStatus status);
     void disable(Long id);
-    void changeAssignee(Long id, Long userId);
+    SubTaskResponse changeAssignee(Long id, Long userId);
     SubTaskResponse duplicate(Long id);
+    void delete(Long id);
     SubTaskResponse changePriority(Long id, TaskPriority priority);
 }

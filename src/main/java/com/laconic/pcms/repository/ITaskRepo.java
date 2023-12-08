@@ -29,6 +29,8 @@ public interface ITaskRepo extends JpaRepository<Task, Long>, JpaSpecificationEx
 
     @EntityGraph(value = "task.graph", type = EntityGraph.EntityGraphType.FETCH)
     List<Task> findAll();
+    @EntityGraph(value = "task.graph", type = EntityGraph.EntityGraphType.FETCH)
+    List<Task> findAll(@NotNull Specification<Task> specification);
 
     @EntityGraph(value = "task.graph", type = EntityGraph.EntityGraphType.FETCH)
     Page<Task> findAll(@NotNull Specification<Task> specification, @NotNull Pageable pageable);

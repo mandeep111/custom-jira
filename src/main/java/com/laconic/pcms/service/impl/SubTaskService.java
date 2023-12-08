@@ -5,18 +5,21 @@ import com.laconic.pcms.component.DuplicateComponent;
 import com.laconic.pcms.entity.SubTask;
 import com.laconic.pcms.entity.Task;
 import com.laconic.pcms.entity.User;
+import com.laconic.pcms.enums.NotificationType;
 import com.laconic.pcms.enums.ProgressStatus;
 import com.laconic.pcms.enums.TaskPriority;
 import com.laconic.pcms.event.SubTaskEvent;
+import com.laconic.pcms.event.TaskEvent;
 import com.laconic.pcms.exceptions.PreconditionFailedException;
 import com.laconic.pcms.repository.ISubTaskRepo;
-import com.laconic.pcms.repository.ITaskRepo;
 import com.laconic.pcms.repository.IUserRepo;
 import com.laconic.pcms.request.SubTaskRequest;
 import com.laconic.pcms.response.PaginationResponse;
 import com.laconic.pcms.response.SubTaskResponse;
+import com.laconic.pcms.response.TaskResponse;
 import com.laconic.pcms.service.concrete.ISubTaskService;
 import com.laconic.pcms.component.WorkflowComponent;
+import com.laconic.pcms.utils.NotificationUtil;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -27,6 +30,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Set;
 
 import static com.laconic.pcms.constants.AppMessages.*;
 import static com.laconic.pcms.utils.AutoMapper.convertList;
@@ -34,9 +38,11 @@ import static com.laconic.pcms.utils.AutoMapper.convertObject;
 import static com.laconic.pcms.utils.Common.getPageable;
 import static com.laconic.pcms.utils.CommonMapper.getPaginationResponse;
 import static com.laconic.pcms.utils.ExceptionMapper.throwNotFoundException;
+import static com.laconic.pcms.utils.SubTaskUtil.*;
 
 @Service
 public class SubTaskService implements ISubTaskService {
+    public static final String WORKFLOW_MESSAGE = "Workflow approval need form id";
     @Autowired
     private ApplicationEventPublisher eventPublisher;
 
@@ -49,16 +55,15 @@ public class SubTaskService implements ISubTaskService {
     private final DuplicateComponent duplicateComponent;
     private final IUserRepo userRepo;
 
-    private final ITaskRepo taskRepo;
+    private final NotificationUtil notificationUtil;
 
-
-    public SubTaskService(ISubTaskRepo subTaskRepo, CommonComponent commonComponent, WorkflowComponent workflowComponent, DuplicateComponent duplicateComponent, IUserRepo userRepo, ITaskRepo taskRepo) {
+    public SubTaskService(ISubTaskRepo subTaskRepo, CommonComponent commonComponent, WorkflowComponent workflowComponent, DuplicateComponent duplicateComponent, IUserRepo userRepo, NotificationUtil notificationUtil) {
         this.subTaskRepo = subTaskRepo;
         this.commonComponent = commonComponent;
         this.workflowComponent = workflowComponent;
         this.duplicateComponent = duplicateComponent;
         this.userRepo = userRepo;
-        this.taskRepo = taskRepo;
+        this.notificationUtil = notificationUtil;
     }
 
     @Override
@@ -69,16 +74,25 @@ public class SubTaskService implements ISubTaskService {
         var task = this.commonComponent.getEntity(request.getTaskId(), Task.class, TASK);
         // validate user is present in task or not
         checkAssignee(task, assignee);
+        if (request.getIsBlocked()) {
+            checkBlockedBy(entity);
+            // check if parent exists or not
+            getSubTask(request.getBlockedBy());
+        } else entity.setIsBlocked(false);
         entity.setStatus(ProgressStatus.WAITING);
         entity.setTask(task);
         entity.setUser(assignee);
         if (request.getNeedApproval()) {
-            if (request.getFormId() == null) throw new PreconditionFailedException("Workflow approval need form id");
-            entity.setUrl(BASE_UI_URL + "/" + request.getFormId());
+            if (request.getFormId() == null) throw new PreconditionFailedException(WORKFLOW_MESSAGE);
+            entity.setUrl(BASE_UI_URL + "/request/form/" + request.getFormId());
         }
         var subTask = this.subTaskRepo.saveAndFlush(entity);
         // publish event to update task and project
         eventPublisher.publishEvent(new SubTaskEvent(subTask));
+        // publish event to send email
+//        var pmsUrlUi = subTask.getTask().getProject().getSpace().getId() +"/"+subTask.getTask().getProject().getSpace().getUrl()+
+//                "/"+ subTask.getTask().getProject().getId()+"/"+ subTask.getTask().getProject().getUrl();
+//        notificationUtil.sendEmails(Set.of(assignee), NotificationType.subtask,subTask.getName(), pmsUrlUi);
         return convertObject(subTask, SubTaskResponse.class);
     }
 
@@ -94,8 +108,8 @@ public class SubTaskService implements ISubTaskService {
         subTask.setRequestCode(request.getRequestCode());
         subTask.setNeedApproval(request.getNeedApproval());
         if (request.getNeedApproval()) {
-            if (request.getFormId() == null) throw new PreconditionFailedException("Workflow approval need form id");
-            subTask.setUrl(BASE_UI_URL + request.getFormId());
+            if (request.getFormId() == null) throw new PreconditionFailedException(WORKFLOW_MESSAGE);
+            subTask.setUrl(BASE_UI_URL + "/request/form/" +  request.getFormId());
         }
         this.subTaskRepo.save(subTask);
     }
@@ -158,15 +172,15 @@ public class SubTaskService implements ISubTaskService {
 
     @Override
     @Transactional
-    public void changeStatus(Long id, ProgressStatus status) {
+    public void changeStatus(String email, Long id, ProgressStatus status) {
         var subTask = getSubTask(id);
+        // make sure subtask is assigned to the same user
+        checkPermission(subTask, email);
+        // make sure subtask is not block
+        checkBlocked(subTask);
         subTask.setStatus(status);
         subTask = this.subTaskRepo.saveAndFlush(subTask);
         eventPublisher.publishEvent(new SubTaskEvent(subTask));
-       /* var _task = subTask.getTask();
-        var response = TaskUtil.mapProgress(convertObject(_task, TaskResponse.class));
-        _task.setProgress(response.getProgress());
-        this.taskRepo.save(_task);*/
     }
 
     @Override
@@ -178,13 +192,20 @@ public class SubTaskService implements ISubTaskService {
     }
 
     @Override
-    public void changeAssignee(Long id, Long userId) {
+    @Transactional(rollbackOn = Exception.class)
+    public  SubTaskResponse changeAssignee(Long id, Long userId) {
         var subTask = getSubTask(id);
         Long taskId = subTask.getTask().getId();
         var user = this.userRepo.findByIdAndTasks_Id(userId, taskId).orElseThrow(throwNotFoundException(userId, taskId, TASK, USER));
         checkAssignee(subTask.getTask(), user);
         subTask.setUser(user);
-        this.subTaskRepo.save(subTask);
+        subTask = this.subTaskRepo.save(subTask);
+        var project = subTask.getTask().getProject();
+        var response = convertObject(subTask, SubTaskResponse.class);
+        response.setProjectId(project.getId());
+        response.setProjectName(project.getName());
+//        notificationUtil.sendEmails(Set.of(user), NotificationType.subtask,subTask.getName(), subTask.getUrl());
+        return response;
     }
 
     private static void checkAssignee(Task task, User user) {
@@ -202,6 +223,7 @@ public class SubTaskService implements ISubTaskService {
         response.setProjectId(project.getId());
         response.setProjectName(project.getName());
         eventPublisher.publishEvent(new SubTaskEvent(duplicateSubTask));
+//        notificationUtil.sendEmails(Set.of(duplicateSubTask.getUser()), NotificationType.subtask,duplicateSubTask.getName(), duplicateSubTask.getUrl());
         return response;
     }
 
@@ -211,6 +233,14 @@ public class SubTaskService implements ISubTaskService {
         subTask.setPriority(priority);
         subTask = this.subTaskRepo.saveAndFlush(subTask);
         return convertObject(subTask, SubTaskResponse.class);
+    }
+
+    @Override
+    public void delete(Long id) {
+        var subTask = getSubTask(id);
+        subTask.setActive(false);
+        subTask = this.subTaskRepo.save(subTask);
+        eventPublisher.publishEvent(new SubTaskEvent(subTask));
     }
 
     public SubTask getSubTask(Long id) {

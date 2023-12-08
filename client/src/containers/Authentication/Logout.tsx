@@ -2,7 +2,7 @@ import React from 'react';
 import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { setToken } from '../../redux/Authentication/actions';
-import Http from '../../services/Http';
+import axios from 'axios';
 
 const Container = () => {
 
@@ -21,7 +21,7 @@ const Container = () => {
 
         dispatch(setToken(null));
         navigate('/login');
-        Http.logout();
+        axios.defaults.headers.common['Authorization'] = '';
     }, [navigate, setToken]);
 
     return null;

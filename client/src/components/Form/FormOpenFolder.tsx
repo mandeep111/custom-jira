@@ -1,5 +1,6 @@
 import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
+import axios, { AxiosResponse } from 'axios';
 import React from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
@@ -7,12 +8,8 @@ import { setOpenFormOpenFolder } from '../../redux/Dialog/actions';
 import { getOpenFormOpenFolder } from '../../redux/Dialog/selectors';
 import { setFolderId, setMouseX, setMouseY, setProjectId, setProjectName, setProjectUrl, setSpaceId, setSpaceName, setSpaceUrl } from '../../redux/Sidebar/actions';
 import { getFolderId } from '../../redux/Sidebar/selectors';
-import Http from '../../services/Http';
-import { API } from '../../utils/api';
 import { ContextMenuProject } from '../ContextMenu';
 import { Grid } from '../Grid';
-import { Folder } from '../../types/Folder';
-import { Project } from '../../types/Project';
 
 interface Props {
     fetchMySpaceList: () => Promise<void>;
@@ -43,8 +40,8 @@ const Component = ({ fetchMySpaceList, fetchFavSpaceList }: Props) => {
 
     const fetchFolder = async () => {
         try {
-            const response: Folder = await Http.get(`${API.FOLDER}/${folderId!}`);
-            setFolder(response);
+            const response: AxiosResponse<Folder> = await axios.get(`${SERVER.API.FOLDER}/${folderId!}`);
+            setFolder(response.data);
         } catch (error) {
             throw new Error(error as string);
         }
@@ -87,8 +84,13 @@ const Component = ({ fetchMySpaceList, fetchFavSpaceList }: Props) => {
         dispatch(setProjectName(project.name));
         const projectRect = projectRef.current?.getBoundingClientRect();
         if (projectRect) {
-            dispatch(setMouseX(event.clientX - projectRect.left));
-            dispatch(setMouseY(event.clientY - projectRect.top));
+            let calculatedMouseX = event.clientX - projectRect.left;
+            let calculatedMouseY = event.clientY - projectRect.top;
+
+            calculatedMouseY = Math.min(calculatedMouseY, -300);
+
+            dispatch(setMouseX(calculatedMouseX));
+            dispatch(setMouseY(calculatedMouseY));
         }
     };
 
@@ -140,7 +142,7 @@ const Component = ({ fetchMySpaceList, fetchFavSpaceList }: Props) => {
                         <div className="backdrop" />
                     </Transition.Child>
                     <div className="fixed inset-0 overflow-y-auto">
-                        <div className="flex min-h-full items-center justify-center p-4 text-center">
+                        <div className="flex items-center justify-center min-h-full p-4 text-center">
                             <Transition.Child
                                 as={React.Fragment}
                                 enter="ease-out duration-300"
@@ -150,10 +152,10 @@ const Component = ({ fetchMySpaceList, fetchFavSpaceList }: Props) => {
                                 leaveFrom="opacity-100 scale-100"
                                 leaveTo="opacity-0 scale-95"
                             >
-                                <Dialog.Panel className="w-full transform rounded-lg bg-default p-6 text-left align-middle shadow-lg transition-all text-default max-w-xl">
+                                <Dialog.Panel className="w-full max-w-xl p-6 text-left align-middle transition-all transform rounded-lg shadow-lg bg-default text-default">
                                     <Dialog.Title
                                         as="h3"
-                                        className="text-lg leading-6 text-default mb-2 font-bold"
+                                        className="mb-2 text-lg font-bold leading-6 text-default"
                                     >
                                         <span className="mr-3">
                                             {'📁'}
@@ -161,14 +163,14 @@ const Component = ({ fetchMySpaceList, fetchFavSpaceList }: Props) => {
                                         {folder?.name}
                                         <button
                                             type="button"
-                                            className="text-default float-right"
+                                            className="float-right text-default"
                                             onClick={handleClose}
                                         >
                                             <XMarkIcon className="icon-x16" />
                                         </button>
                                         <hr className="mt-5" />
                                     </Dialog.Title>
-                                    <form onSubmit={(event) => void handleFormSubmit(event)} className="max-h-112 overflow-y-auto">
+                                    <form onSubmit={(event) => void handleFormSubmit(event)} className="overflow-y-auto max-h-112">
                                         <Grid column={5} gap={4} className="justify-center">
                                             {Array.isArray(renderProject) && renderProject.map((project, index) => (
                                                 <React.Fragment key={index}>
@@ -176,9 +178,9 @@ const Component = ({ fetchMySpaceList, fetchFavSpaceList }: Props) => {
                                                         <div
                                                             onContextMenu={(event) => handleContextMenu(event, folder!, project)}
                                                             onClick={(event) => handleClick(event, project)}
-                                                            className="has-tooltip p-3 block justify-center items-center align-middle"
+                                                            className="items-center justify-center block p-3 align-middle has-tooltip"
                                                         >
-                                                            <Link to={project.id && project.url ? `/${folder!.spaceId!}/${folder!.spaceUrl!}/${project.id}/${project.url}` : ''} className="flex items-center transition duration-200 p-3 rounded-lg hover:bg-default-faded">
+                                                            <Link to={project.id && project.url ? `/${folder!.spaceId!}/${folder!.spaceUrl!}/${project.id}/${project.url}` : ''} className="flex items-center p-3 transition duration-200 rounded-lg hover:bg-default-faded">
                                                                 <span
                                                                     className="w-12 h-12 px-2.5 py-1.5 text-xl rounded uppercase text-white flex items-center justify-center cursor-pointer"
                                                                     style={{ backgroundColor: project.color }}
@@ -186,14 +188,14 @@ const Component = ({ fetchMySpaceList, fetchFavSpaceList }: Props) => {
                                                                     {project.name.charAt(0)}
                                                                 </span>
                                                             </Link>
-                                                            <span className="block truncate text-center">{project.name}</span>
+                                                            <span className="block text-center truncate">{project.name}</span>
                                                             <span className="tooltip rounded px-3 py-1.5 bg-default border border-default text-default whitespace-nowrap">{project.name}</span>
                                                         </div>
                                                     </div>
                                                 </React.Fragment>
                                             ))}
                                         </Grid>
-                                        <div className="mt-4 flex justify-center">
+                                        <div className="flex justify-center mt-4">
                                             {pageNumbers.map((page) => (
                                                 <button
                                                     type="button"
@@ -211,6 +213,7 @@ const Component = ({ fetchMySpaceList, fetchFavSpaceList }: Props) => {
                     <ContextMenuProject
                         projectRef={projectRef}
                         fetchSpaceList={fetchMySpaceList}
+                        fetchFavSpaceList={fetchFavSpaceList}
                     />
                 </Dialog>
             </Transition>

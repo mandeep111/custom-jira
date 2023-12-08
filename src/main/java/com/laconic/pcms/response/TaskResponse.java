@@ -15,16 +15,12 @@ public class TaskResponse {
     private Long id;
     private Long taskStageId;
     private String taskStageName;
-
+    private Long spaceId;
+    private String spaceName;
     private Long projectId;
     private String projectName;
-
-//    private Long companyId;
-//    private String companyName;
-
     private Long milestoneId;
     private String milestoneName;
-
     private String name;
     private String color;
     private String description;
@@ -43,4 +39,5 @@ public class TaskResponse {
     private Set<SubTaskResponse> subTasks;
     private String type;
     private ProgressStatus progressStatus;
+    private String url;
 }

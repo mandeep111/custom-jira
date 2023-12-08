@@ -1,11 +1,10 @@
 import React from 'react';
-import useAuthorize from '../../hooks/useAuthorize';
+import { useSelector } from 'react-redux';
 import { Sidebar } from '../../components/Sidebar';
 import { Spinner } from '../../components/Spinner';
 import { Reports } from '../../containers/Reports';
-import { useSelector } from 'react-redux';
+import useAuthorize from '../../hooks/useAuthorize';
 import { getToggle } from '../../redux/Sidebar/selectors';
-
 
 const Page = ({ isReady }: PageProps) => {
 

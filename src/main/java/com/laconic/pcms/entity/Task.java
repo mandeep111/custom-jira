@@ -57,7 +57,7 @@ public class Task extends BaseEntity<String> {
     @Fetch(FetchMode.SUBSELECT)
     private Set<User> users;
 
-    @OneToMany(mappedBy = "task", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "task", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     private Set<SubTask> subTasks;
     private String name;
     private String description;

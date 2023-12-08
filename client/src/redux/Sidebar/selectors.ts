@@ -24,6 +24,14 @@ export const getProjectName = (state: RootState) => {
     return state.sidebar.projectName;
 };
 
+export const getFavoriteSpace = (state: RootState) => {
+    return state.sidebar.favoriteSpace;
+};
+
+export const getFavoriteProject = (state: RootState) => {
+    return state.sidebar.favoriteProject;
+};
+
 export const getFolderId = (state: RootState) => {
     return state.sidebar.folderId;
 };

@@ -3,7 +3,6 @@ package com.laconic.pcms.controller;
 
 import com.laconic.pcms.constants.AppConstants;
 import com.laconic.pcms.constants.Routes;
-import com.laconic.pcms.dto.CreateUserDto;
 import com.laconic.pcms.exceptions.ServerException;
 import com.laconic.pcms.request.UserLoginRequest;
 import com.laconic.pcms.response.PaginationResponse;
@@ -21,7 +20,9 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+import static com.laconic.pcms.component.KeyCloakComponent.getEmailFromToken;
 import static com.laconic.pcms.constants.AppConstants.*;
+import static com.laconic.pcms.utils.KeyCloakAuthenticationUtil.getUserEmail;
 
 @RestController
 @RequestMapping(Routes.user)
@@ -86,13 +87,11 @@ public class UserController {
     }
 
     @GetMapping("/my-space")
-    public ResponseEntity<PaginationResponse<SpaceResponse>> getAllSpaces(@RequestParam(value = "pageNo", defaultValue = DEFAULT_PAGE_NUMBER, required = false) int pageNo,
+    public ResponseEntity<PaginationResponse<SpaceResponse>> getAllSpaces(@AuthenticationPrincipal Jwt jwt, @RequestParam(value = "pageNo", defaultValue = DEFAULT_PAGE_NUMBER, required = false) int pageNo,
                                                                           @RequestParam(value = "pageSize", defaultValue = DEFAULT_PAGE_SIZE, required = false) int pageSize,
                                                                           @RequestParam(value = "sortBy", defaultValue = DEFAULT_SORT_BY, required = false) String sortBy,
                                                                           @RequestParam(value = "sortDir", defaultValue = DEFAULT_SORT_DIRECTION, required = false) String sortDir,
                                                                           @RequestParam(value = "search", required = false) String keyword) {
-        var email = keyCloakAuthenticationUtil.getUserEmail();
-        System.out.println(email);
-        return ResponseEntity.ok(this.spaceService.getAll(email, pageNo, pageSize, sortBy, sortDir, keyword));
+        return ResponseEntity.ok(this.spaceService.getAll(getEmailFromToken(jwt.getTokenValue()), pageNo, pageSize, sortBy, sortDir, keyword));
     }
 }

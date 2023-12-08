@@ -1,9 +1,7 @@
 import { Listbox, Transition } from '@headlessui/react';
 import { CheckIcon, ChevronUpDownIcon } from '@heroicons/react/24/outline';
+import axios, { AxiosResponse } from 'axios';
 import React from 'react';
-import { useSelector } from 'react-redux';
-import { getToken } from '../../redux/Authentication/selectors';
-import { get } from '../../services/Form';
 
 interface Props {
     setForm: (formId: number | null) => void;
@@ -17,28 +15,21 @@ interface Form {
 
 const Component = ({ setForm }: Props) => {
 
-    const token = useSelector(getToken);
-    const config = {
-        headers: {
-            'Authorization': `Bearer ${token!}`
-        }
-    };
-
     const [formList, setFormList] = React.useState<Form[]>([]);
     const [selectedForm, setSelectedForm] = React.useState<Form | null>(null);
 
     const fetchData = async () => {
         try {
-            const response: Form[] = await get(config);
-            setFormList(response);
+            const response: AxiosResponse<Form[]> = await axios.get(`${SERVER.API.FORM}/forms`);
+            setFormList(response.data);
         } catch (error) {
-            throw new Error(error as string);
+            throw new Error(`An error occurred: ${error as string}`);
         }
     };
 
     React.useEffect(() => {
         void fetchData();
-    }, [token]);
+    }, []);
 
     React.useEffect(() => {
         if (selectedForm !== null && selectedForm !== undefined) {

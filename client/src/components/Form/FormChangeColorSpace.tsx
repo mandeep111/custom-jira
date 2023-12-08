@@ -1,12 +1,11 @@
 import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
+import axios from 'axios';
 import React from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { setOpenFormChangeColorSpace } from '../../redux/Dialog/actions';
 import { getOpenFormChangeColorSpace } from '../../redux/Dialog/selectors';
 import { getSpaceId } from '../../redux/Sidebar/selectors';
-import Http from '../../services/Http';
-import { API } from '../../utils/api';
 import { Color } from '../Color';
 import { Grid } from '../Grid';
 
@@ -26,7 +25,7 @@ const Component = ({ fetchMySpaceList, fetchFavSpaceList }: Props) => {
     const handleFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         try {
-            await Http.update(`${API.SPACE}/color/${spaceId!}?color=${color}`);
+            await axios.put(`${SERVER.API.SPACE}/color/${spaceId!}?color=${color}`);
             dispatch(setOpenFormChangeColorSpace(false));
             await fetchMySpaceList();
             await fetchFavSpaceList();

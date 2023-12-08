@@ -1,5 +1,6 @@
 import { Popover, Transition } from '@headlessui/react';
 import { FunnelIcon } from '@heroicons/react/24/outline';
+import axios, { AxiosResponse } from 'axios';
 import React from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useParams } from 'react-router-dom';
@@ -7,9 +8,6 @@ import useDebounce from '../../hooks/useDebounce';
 import { setIsCheckMe } from '../../redux/Project/actions';
 import { getIsCheckMe, getSortDir } from '../../redux/Project/selectors';
 import { getSearch } from '../../redux/Task/selectors';
-import Http from '../../services/Http';
-import { API } from '../../utils/api';
-import { Task } from '../../types/Task';
 
 interface Props {
     setTaskList: React.Dispatch<React.SetStateAction<Task[]>>;
@@ -34,14 +32,13 @@ const Component = ({ setTaskList, fetchTaskList, fetchMeList }: Props) => {
         { id: 1, name: 'Name', value: 'name' },
         { id: 2, name: 'Color', value: 'color' },
         { id: 3, name: 'Progress', value: 'progress' },
-        { id: 4, name: 'Assignee', value: 'assignees' },
-        { id: 5, name: 'Due Date', value: 'end' },
+        { id: 4, name: 'Due Date', value: 'deadlineDate' },
     ];
 
     const fetchTaskWithFilter = async () => {
         try {
-            const response: { content: Task[] } = await Http.get(`${API.TASK}/page?projectId=${projectId!}&${queryString!}&search=${search}&sortDir=${sortDir}`);
-            const { content } = response;
+            const response: AxiosResponse<APIResponse<Task>> = await axios.get(`${SERVER.API.TASK}/page?projectId=${projectId!}&${queryString!}&search=${search}&sortDir=${sortDir}`);
+            const { content } = response.data;
             setTaskList(content);
         } catch (error) {
             throw new Error(error as string);
@@ -110,8 +107,8 @@ const Component = ({ setTaskList, fetchTaskList, fetchMeList }: Props) => {
                         leaveFrom="opacity-100 translate-y-0"
                         leaveTo="opacity-0 translate-y-1"
                     >
-                        <Popover.Panel className="absolute left-1/2 z-10 mt-3 w-72 max-w-sm -translate-x-1/2 transform px-4 sm:px-0 lg:max-w-3xl">
-                            <div className="overflow-hidden rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 border border-default bg-default p-4">
+                        <Popover.Panel className="absolute z-10 max-w-sm px-4 mt-3 transform -translate-x-1/2 left-1/2 w-72 sm:px-0 lg:max-w-3xl">
+                            <div className="p-4 overflow-hidden border rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 border-default bg-default">
                                 {filtersList.map((filter, index) => (
                                     <React.Fragment key={index}>
                                         <div className="flex items-center pb-2">
@@ -119,13 +116,13 @@ const Component = ({ setTaskList, fetchTaskList, fetchMeList }: Props) => {
                                                 id={filter.value}
                                                 type="checkbox"
                                                 value={filter.value}
-                                                className="w-4 h-4 text-default bg-default border-default rounded"
+                                                className="w-4 h-4 rounded text-default bg-default border-default"
                                                 checked={filterValue.includes(filter.value)}
                                                 onChange={(event) => {
                                                     void handleFilterChecked(event, filter.value);
                                                 }}
                                             />
-                                            <label htmlFor={filter.value} className="ml-2 text-sm font-medium text-default select-none cursor-pointer">
+                                            <label htmlFor={filter.value} className="ml-2 text-sm font-medium cursor-pointer select-none text-default">
                                                 {filter.name}
                                             </label>
                                         </div>

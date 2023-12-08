@@ -2,27 +2,35 @@ package com.laconic.pcms.controller;
 
 import com.laconic.pcms.constants.AppConstants;
 import com.laconic.pcms.constants.Routes;
-import com.laconic.pcms.entity.User;
+import com.laconic.pcms.entity.Notification;
 import com.laconic.pcms.enums.ProgressStatus;
 import com.laconic.pcms.response.*;
+import com.laconic.pcms.service.concrete.INotificationService;
 import com.laconic.pcms.service.concrete.IUserProfileService;
-import org.apache.coyote.Response;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import static com.laconic.pcms.component.KeyCloakComponent.getEmailFromToken;
+import static com.laconic.pcms.constants.AppConstants.DEFAULT_PAGE_NUMBER;
+import static com.laconic.pcms.constants.AppConstants.DEFAULT_PAGE_SIZE;
 
 @RestController
 @RequestMapping(Routes.user_profile)
 public class UserProfileController {
 
     private final IUserProfileService userProfileService;
+    private final INotificationService notificationService;
 
-    public UserProfileController(IUserProfileService userProfileService) {
+    public UserProfileController(IUserProfileService userProfileService, INotificationService notificationService) {
         this.userProfileService = userProfileService;
+        this.notificationService = notificationService;
     }
 
     @GetMapping
@@ -57,7 +65,7 @@ public class UserProfileController {
         return userProfileService.getUserSubTasksByProject(projectId, startDate, endDate);
     }
 
-    @GetMapping("/sub-count")
+    @PostMapping(value = "/sub-count", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
     public Map<UserResponse, Map<ProgressStatus, Long>> getAllSubTasks(@RequestParam("startDate") Date startDate,
                                                                        @RequestParam("endDate") Date endDate) {
         return userProfileService.getAllSubTasks(startDate, endDate);
@@ -89,35 +97,44 @@ public class UserProfileController {
         return ResponseEntity.ok().body(this.userProfileService.getMyFavoriteSpaces());
     }
 
-    // todo: create pagination controller
+    @GetMapping("/notification")
+    public PaginationResponse<Notification> getEmailNotifications(@AuthenticationPrincipal Jwt jwt, @RequestParam(value = "pageNo", defaultValue = DEFAULT_PAGE_NUMBER) int pageNo,
+                                                                  @RequestParam(value = "pageSize", defaultValue = DEFAULT_PAGE_SIZE) int pageSize) {
+        return this.notificationService.getNotifications(getEmailFromToken(jwt.getTokenValue()), pageNo, pageSize);
+    }
+
+    @PutMapping("/read-notification")
+    public void updateEmails(@RequestParam(value = "ids") List<Long> ids) {
+        this.notificationService.updateNotifications(ids);
+    }
 
     @GetMapping("/my-sub-tasks/page")
-    public ResponseEntity<PaginationResponse<SubTaskResponse>> getMySubTasks(@RequestParam(value = "pageNo", defaultValue = AppConstants.DEFAULT_PAGE_NUMBER, required = false) int pageNo,
-                                                                             @RequestParam(value = "pageSize", defaultValue = AppConstants.DEFAULT_PAGE_SIZE, required = false) int pageSize,
+    public ResponseEntity<PaginationResponse<SubTaskResponse>> getMySubTasks(@RequestParam(value = "pageNo", defaultValue = DEFAULT_PAGE_NUMBER, required = false) int pageNo,
+                                                                             @RequestParam(value = "pageSize", defaultValue = DEFAULT_PAGE_SIZE, required = false) int pageSize,
                                                                              @RequestParam(value = "sortBy", defaultValue = AppConstants.DEFAULT_SORT_BY, required = false) String sortBy,
                                                                              @RequestParam(value = "sortDir", defaultValue = AppConstants.DEFAULT_SORT_DIRECTION, required = false) String sortDir) {
         return ResponseEntity.ok().body(this.userProfileService.getMySubTasks(pageNo, pageSize, sortBy, sortDir));
     }
 
     @GetMapping("/my-fav-projects/page")
-    public ResponseEntity<PaginationResponse<ProjectResponse>> getMyFavoriteProjects(@RequestParam(value = "pageNo", defaultValue = AppConstants.DEFAULT_PAGE_NUMBER, required = false) int pageNo,
-                                                                                     @RequestParam(value = "pageSize", defaultValue = AppConstants.DEFAULT_PAGE_SIZE, required = false) int pageSize,
+    public ResponseEntity<PaginationResponse<ProjectResponse>> getMyFavoriteProjects(@RequestParam(value = "pageNo", defaultValue = DEFAULT_PAGE_NUMBER, required = false) int pageNo,
+                                                                                     @RequestParam(value = "pageSize", defaultValue = DEFAULT_PAGE_SIZE, required = false) int pageSize,
                                                                                      @RequestParam(value = "sortBy", defaultValue = AppConstants.DEFAULT_SORT_BY, required = false) String sortBy,
                                                                                      @RequestParam(value = "sortDir", defaultValue = AppConstants.DEFAULT_SORT_DIRECTION, required = false) String sortDir) {
         return ResponseEntity.ok().body(this.userProfileService.getMyFavoriteProjects(pageNo, pageSize, sortBy, sortDir));
     }
 
     @GetMapping("/my-fav-spaces/page")
-    public ResponseEntity<PaginationResponse<SpaceResponse>> getMyFavoriteSpaces(@RequestParam(value = "pageNo", defaultValue = AppConstants.DEFAULT_PAGE_NUMBER, required = false) int pageNo,
-                                                                                 @RequestParam(value = "pageSize", defaultValue = AppConstants.DEFAULT_PAGE_SIZE, required = false) int pageSize,
+    public ResponseEntity<PaginationResponse<SpaceResponse>> getMyFavoriteSpaces(@RequestParam(value = "pageNo", defaultValue = DEFAULT_PAGE_NUMBER, required = false) int pageNo,
+                                                                                 @RequestParam(value = "pageSize", defaultValue = DEFAULT_PAGE_SIZE, required = false) int pageSize,
                                                                                  @RequestParam(value = "sortBy", defaultValue = AppConstants.DEFAULT_SORT_BY, required = false) String sortBy,
                                                                                  @RequestParam(value = "sortDir", defaultValue = AppConstants.DEFAULT_SORT_DIRECTION, required = false) String sortDir) {
         return ResponseEntity.ok().body(this.userProfileService.getMyFavoriteSpaces(pageNo, pageSize, sortBy, sortDir));
     }
 
     @GetMapping("/my-tasks/page")
-    public ResponseEntity<PaginationResponse<TaskResponse>> getMyTasks(@RequestParam(value = "pageNo", defaultValue = AppConstants.DEFAULT_PAGE_NUMBER, required = false) int pageNo,
-                                                                       @RequestParam(value = "pageSize", defaultValue = AppConstants.DEFAULT_PAGE_SIZE, required = false) int pageSize,
+    public ResponseEntity<PaginationResponse<TaskResponse>> getMyTasks(@RequestParam(value = "pageNo", defaultValue = DEFAULT_PAGE_NUMBER, required = false) int pageNo,
+                                                                       @RequestParam(value = "pageSize", defaultValue = DEFAULT_PAGE_SIZE, required = false) int pageSize,
                                                                        @RequestParam(value = "sortBy", defaultValue = AppConstants.DEFAULT_SORT_BY, required = false) String sortBy,
                                                                        @RequestParam(value = "sortDir", defaultValue = AppConstants.DEFAULT_SORT_DIRECTION, required = false) String sortDir) {
         return ResponseEntity.ok().body(this.userProfileService.getMyTasks(pageNo, pageSize, sortBy, sortDir));

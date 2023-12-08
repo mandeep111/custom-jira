@@ -42,6 +42,20 @@ export const setProjectName = (projectName: string | null) => {
     };
 };
 
+export const setFavoriteSpace = (isFavorite: boolean) => {
+    return {
+        type: Action.SET_FAVORITE_SPACE,
+        payload: isFavorite
+    };
+};
+
+export const setFavoriteProject = (isFavorite: boolean) => {
+    return {
+        type: Action.SET_FAVORITE_PROJECT,
+        payload: isFavorite
+    };
+};
+
 export const setFolderId = (folderId: number | null) => {
     return {
         type: Action.SET_FOLDER_ID,

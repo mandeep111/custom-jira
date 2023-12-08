@@ -44,22 +44,22 @@ public class DataLoader implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) throws Exception {
-        boolean userExists = userRepo.count() > 0;
+//        boolean userExists = userRepo.count() > 0;
         boolean companyExists = companyRepo.count() > 0;
         var password = encoder.encode("12345");
         boolean stageDataExists = stageRepo.count() > 0;
         boolean taskStageDataExists = taskStageRepo.count() > 0;
 
-        if (!userExists) {
-            List<User> users = new ArrayList<>();
-            users.add(User.builder().email("admin@gmail.com").fullName("Admin Admin").password(password).build());
-            users.add(User.builder().email("kong@gmail.com").fullName("Kong Kong").password(password).build());
-            users.add(User.builder().email("mandip@gmail.com").fullName("Mandip Mandip").password(password).build());
-            users.add(User.builder().email("mike@gmail.com").fullName("Mike Shinoda").password(password).build());
-            users.add(User.builder().email("john@gmail.com").fullName("John Stone").password(password).build());
-            users.add(User.builder().email("bob@gmail.com").fullName("Bob Marley").password(password).build());
-            this.userRepo.saveAll(users);
-        }
+//        if (!userExists) {
+//            List<User> users = new ArrayList<>();
+//            users.add(User.builder().email("admin@gmail.com").fullName("Admin Admin").password(password).build());
+//            users.add(User.builder().email("kong@gmail.com").fullName("Kong Kong").password(password).build());
+//            users.add(User.builder().email("mandip@gmail.com").fullName("Mandip Mandip").password(password).build());
+//            users.add(User.builder().email("mike@gmail.com").fullName("Mike Shinoda").password(password).build());
+//            users.add(User.builder().email("john@gmail.com").fullName("John Stone").password(password).build());
+//            users.add(User.builder().email("bob@gmail.com").fullName("Bob Marley").password(password).build());
+//            this.userRepo.saveAll(users);
+//        }
 
         if (!companyExists) {
             this.companyRepo.save(Company.builder().name("New Company").build());

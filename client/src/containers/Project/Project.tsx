@@ -1,5 +1,6 @@
 import { Listbox, Tab, Transition } from '@headlessui/react';
 import * as HeroIcons from '@heroicons/react/24/outline';
+import axios, { AxiosResponse } from 'axios';
 import React from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -11,15 +12,10 @@ import { TabBoard, TabGanttChart, TabList } from '../../components/Tab';
 import { setOpenFormNewTask, setOpenFormPlatformShare } from '../../redux/Dialog/actions';
 import { setIsCheckMe, setIsCheckShow, setSortDir } from '../../redux/Project/actions';
 import { getIsCheckMe, getIsCheckShow, getSortDir } from '../../redux/Project/selectors';
-import { setToggle } from '../../redux/Sidebar/actions';
+import { setSpaceId, setToggle } from '../../redux/Sidebar/actions';
 import { getProjectName, getToggle } from '../../redux/Sidebar/selectors';
 import { setSearch } from '../../redux/Task/actions';
 import { getSearch } from '../../redux/Task/selectors';
-import Http from '../../services/Http';
-import { Space } from '../../types/Space';
-import { Task } from '../../types/Task';
-import { TaskStage } from '../../types/TaskStage';
-import { API } from '../../utils/api';
 
 const Container = () => {
 
@@ -84,8 +80,8 @@ const Container = () => {
 
     const fetchSpace = async () => {
         try {
-            const response: Space = await Http.getById(`${API.SPACE}/${spaceId!}`);
-            setSpace(response);
+            const response: AxiosResponse<Space> = await axios.get(`${SERVER.API.SPACE}/${spaceId!}`);
+            setSpace(response.data);
         } catch (error) {
             navigate('/no-space');
             throw new Error(error as string);
@@ -94,8 +90,8 @@ const Container = () => {
 
     const fetchTaskStage = async () => {
         try {
-            const response: TaskStage[] = await Http.getById(`${API.TASK_STAGE}/find-by-project/${projectId!}`);
-            setTaskStagesList(response);
+            const response: AxiosResponse<TaskStage[]> = await axios.get(`${SERVER.API.TASKSTAGE}/find-by-project/${projectId!}`);
+            setTaskStagesList(response.data);
         } catch (error) {
             throw new Error(error as string);
         }
@@ -103,8 +99,8 @@ const Container = () => {
 
     const fetchTaskList = async () => {
         try {
-            const response: Task[] = await Http.getById(`${API.TASK}/find-by-project/${projectId!}`);
-            setTaskList(response);
+            const response: AxiosResponse<Task[]> = await axios.get(`${SERVER.API.TASK}/find-by-project/${projectId!}`);
+            setTaskList(response.data);
         } catch (error) {
             throw new Error(error as string);
         }
@@ -112,8 +108,8 @@ const Container = () => {
 
     const fetchMeList = async () => {
         try {
-            const response: Task[] = await Http.get(`${API.USER_PROFILE}/my-tasks`);
-            const taskByProject = response.filter((task) => task.projectId?.toString() === projectId);
+            const response: AxiosResponse<Task[]> = await axios.get(`${SERVER.API.USERPROFILE}/my-tasks`);
+            const taskByProject = response.data.filter((task) => task.projectId?.toString() === projectId);
             setTaskList(taskByProject);
         } catch (error) {
             throw new Error(error as string);
@@ -173,15 +169,15 @@ const Container = () => {
             <main>
                 <Tab.Group>
                     <Tab.List
-                        className="flex flex-row flex-nowrap border-b dark:border-default bg-default">
+                        className="flex flex-row border-b flex-nowrap dark:border-default bg-default">
                         <button
                             type="button"
                             className={`text-default px-3 ${toggle ? '' : 'hidden'}`}
                             onClick={handleSidebarToggle}
                         >
-                            <HeroIcons.ChevronDoubleRightIcon className="icon-x20 mr-0" />
+                            <HeroIcons.ChevronDoubleRightIcon className="mr-0 icon-x20" />
                         </button>
-                        <div className="flex flex-nowrap px-3 border-b-2 border-b-transparent pb-3 pt-4 text-xs text-default cursor-default select-none">
+                        <div className="flex px-3 pt-4 pb-3 text-xs border-b-2 cursor-default select-none flex-nowrap border-b-transparent text-default">
                             {space ? (
                                 <React.Fragment>
                                     <span
@@ -191,11 +187,11 @@ const Container = () => {
                                         {space.name.charAt(0)}
                                     </span>
                                     <div className={`${projectName ? 'inline-block truncate w-20' : 'flex items-center'}`} >
-                                        <span className="text-default font-bold uppercase truncate w-20" title={space.name}>
+                                        <span className="w-20 font-bold uppercase truncate text-default" title={space.name}>
                                             {space.name}
                                         </span>
                                         {projectName && (
-                                            <span className="text-default text-xs flex font-thin truncate w-20">
+                                            <span className="flex w-20 text-xs font-thin truncate text-default">
                                                 {`${projectName}`}
                                             </span>
                                         )}
@@ -208,7 +204,7 @@ const Container = () => {
                                     >
                                         {String('Everything').charAt(0)}
                                     </span>
-                                    <span className="text-default flex items-center font-bold">
+                                    <span className="flex items-center font-bold text-default">
                                         {'Everything'}
                                     </span>
                                 </React.Fragment>
@@ -222,10 +218,10 @@ const Container = () => {
                                 {tab?.icon && tab.icon()}{tab?.name}
                             </Tab>
                         ))}
-                        <div className="flex items-center flex-nowrap text-default">
+                        <div className="z-10 flex items-center flex-nowrap text-default">
                             <Listbox value={selectedView} onChange={setSelectedView} multiple>
                                 <div className="relative w-48">
-                                    <Listbox.Button className="flex items-center bg-default hover:bg-default-faded rounded-lg text-sm text-default">
+                                    <Listbox.Button className="flex items-center text-sm rounded-lg bg-default hover:bg-default-faded text-default">
                                         <HeroIcons.PlusIcon className="icon-x16" />
                                         {'View'}
                                     </Listbox.Button>
@@ -235,7 +231,7 @@ const Container = () => {
                                         leaveFrom="opacity-100"
                                         leaveTo="opacity-0"
                                     >
-                                        <Listbox.Options className="absolute mt-3 max-h-60 w-full overflow-auto rounded-md bg-default border border-default py-1 text-xs">
+                                        <Listbox.Options className="absolute w-full py-1 mt-3 overflow-auto text-xs border rounded-md max-h-60 bg-default border-default">
                                             {viewList.map((view, index) => (
                                                 <Listbox.Option
                                                     key={index}
@@ -268,7 +264,10 @@ const Container = () => {
                                 <button
                                     type="button"
                                     className="button !text-sm px-3 py-1 mr-2"
-                                    onClick={() => dispatch(setOpenFormNewTask(true))}
+                                    onClick={() => {
+                                        dispatch(setOpenFormNewTask(true));
+                                        dispatch(setSpaceId(Number(spaceId)));
+                                    }}
                                 >
                                     <HeroIcons.PlusIcon className="icon-x12" />{'New Task'}
                                 </button>
@@ -295,7 +294,7 @@ const Container = () => {
                                     />
                                 </div>
                             </div>
-                            <div className="flex flex-auto justify-end">
+                            <div className="flex justify-end flex-auto">
                                 <div className="flex items-center flex-nowrap text-default uppercase px-2.5 py-1">
                                     <button
                                         type="button"
@@ -322,13 +321,13 @@ const Container = () => {
                                         <HeroIcons.EyeIcon className="icon-x16" />
                                         {'Show'}
                                     </button>
-                                    <button
+                                    {/* <button
                                         type="button"
                                         className="flex items-center bg-default hover:bg-default-faded rounded-lg text-sm text-default px-1.5"
                                         onClick={() => setSnow(!snow)}
                                     >
-                                        <HeroIcons.EllipsisHorizontalIcon className="icon-x16 mr-0" />
-                                    </button>
+                                        <HeroIcons.EllipsisHorizontalIcon className="mr-0 icon-x1" />
+                                    </button> */}
                                 </div>
                             </div>
                         </nav>

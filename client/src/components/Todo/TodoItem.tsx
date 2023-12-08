@@ -1,14 +1,12 @@
+import { FlagIcon } from '@heroicons/react/24/solid';
+import axios from 'axios';
 import React from 'react';
 import { useDrag, useDrop } from 'react-dnd';
-import Http from '../../services/Http';
-import { API } from '../../utils/api';
-import { ProgressBarTask } from '../ProgressBar';
-import { FlagIcon } from '@heroicons/react/24/solid';
-import { Grid } from '../Grid';
 import { useSelector } from 'react-redux';
-import { getIsCheckShow } from '../../redux/Project/selectors';
 import { Priority } from '../../enum/Priority';
-import { Task } from '../../types/Task';
+import { getIsCheckShow } from '../../redux/Project/selectors';
+import { Grid } from '../Grid';
+import { ProgressBarTask } from '../ProgressBar';
 
 interface Props extends React.HTMLAttributes<HTMLDivElement> {
     index: number;
@@ -27,7 +25,6 @@ interface Dragged {
 const Component = ({ index, task, setTask, currentStage, onClick }: Props) => {
 
     const ref = React.useRef<HTMLDivElement>(null);
-    const [priorityColor, setPriorityColor] = React.useState('#27AE60');
 
     const isCheckShow = useSelector(getIsCheckShow);
 
@@ -44,7 +41,7 @@ const Component = ({ index, task, setTask, currentStage, onClick }: Props) => {
     const handleChangeStageTask = (currentItem: { task: Task }, columnId: number) => {
         setTask((prevState) => {
             try {
-                void Http.change(`${API.TASK}/change/${currentItem.task.id!}/${columnId}`);
+                void axios.patch(`${SERVER.API.TASK}/change/${currentItem.task.id!}/${columnId}`);
             } catch (error) {
                 throw new Error(error as string);
             }
@@ -138,31 +135,11 @@ const Component = ({ index, task, setTask, currentStage, onClick }: Props) => {
         document.removeEventListener('mouseup', mouseUpHandler);
     };
 
-    React.useEffect(() => {
-        switch (task.priority) {
-            case Priority.URGENT:
-                setPriorityColor('#C0392B');
-                break;
-            case Priority.HIGH:
-                setPriorityColor('#F1C40F');
-                break;
-            case Priority.MEDIUM:
-                setPriorityColor('#2980B9');
-                break;
-            case Priority.LOW:
-                setPriorityColor('#27AE60');
-                break;
-            default:
-                setPriorityColor('#27AE60');
-        }
-    }, [task.priority]);
-
-
     return (
         <React.Fragment>
             <div
                 ref={ref}
-                className="mx-3 mb-2 px-6 py-3 bg-default border border-default rounded-lg"
+                className="px-6 py-3 mx-3 mb-2 border rounded-lg bg-default border-default"
                 onMouseUp={mouseUpHandler}
                 onMouseDown={mouseDownHandler}
                 style={{ opacity }}
@@ -172,24 +149,29 @@ const Component = ({ index, task, setTask, currentStage, onClick }: Props) => {
                     <Grid.Column sm={10} md={10} lg={10} xl={10} xxl={10}>
                         <div className="flex items-center mb-8">
                             <span className="p-1.5 w-0 rounded-full" style={{ backgroundColor: task.color }}></span>
-                            <h5 className="text-lg font-bold text-default ml-3">{task.name}</h5>
+                            <h5 className="ml-3 text-lg font-bold text-default overflow-hidden max-w-[width] truncate">{task.name}</h5>
                         </div>
                     </Grid.Column>
                     <Grid.Column sm={2} md={2} lg={2} xl={2} xxl={2}>
-                        <div className="flex justify-end">
-                            <FlagIcon className="icon-x16" style={{ color: priorityColor }} />
+                        <div className="flex justify-end -mr-4 has-tooltip">
+                            <FlagIcon className={`${task.priority === Priority.LOW ? 'text-green-400 dark:text-green-700' : ''} ${task.priority === Priority.NORMAL ? 'text-blue-400 dark:text-blue-700' : ''} ${task.priority === Priority.HIGH ? 'text-orange-400 dark:text-orange-700' : ''} ${task.priority === Priority.URGENT ? 'text-red-400 dark:text-red-700' : ''} icon-x20`} />
+                            <span className="tooltip rounded px-3 py-1.5 bg-default border border-default text-default whitespace-nowrap mt-7">{task.priority}</span>
                         </div>
                     </Grid.Column>
                 </Grid>
                 <Grid column={12} gap={1}>
                     <Grid.Column sm={12} md={12} lg={12} xl={12} xxl={12}>
-                        <p className="mb-2 text-sm text-default">{new Intl.DateTimeFormat('en-US', { day: '2-digit', month: 'short', year: '2-digit' }).format(new Date(task.end!))}</p>
+                        <p className="mb-2 text-xs text-default">
+                            {new Intl.DateTimeFormat('en-US', { day: '2-digit', month: 'short', year: '2-digit' }).format(new Date(task.start!))}
+                            {' — '}
+                            {new Intl.DateTimeFormat('en-US', { day: '2-digit', month: 'short', year: '2-digit' }).format(new Date(task.end!))}
+                        </p>
                     </Grid.Column>
                 </Grid>
                 <Grid column={12} gap={1}>
                     <Grid.Column sm={12} md={12} lg={12} xl={12} xxl={12}>
-                        <div className="flex grid-cols-1 justify-items-start whitespace-nowrap overflow-hidden">
-                            <div className="flex mt-2 -space-x-3 mb-3">
+                        <div className="flex grid-cols-1 overflow-hidden justify-items-start whitespace-nowrap">
+                            <div className="flex mt-2 mb-3 -space-x-3">
                                 {task?.assignee.slice(0, 5).map((data, index) => (
                                     <span
                                         key={index}
@@ -221,8 +203,7 @@ const Component = ({ index, task, setTask, currentStage, onClick }: Props) => {
                         <ol className="relative border-l border-default">
                             {isCheckShow && task.subTasks!.map((data, index) =>
                                 <li className="mb-5 ml-4" key={index}>
-                                    <div className=""></div>
-                                    <div className="absolute w-3 h-3 bg-default-faded rounded-full mt-1.5 -left-1.5 border border-default"></div>
+                                    <div className={`absolute w-3 h-3 ${data.status === 'COMPLETED' ? 'bg-green-400' : 'bg-default-faded'} rounded-full mt-1.5 -left-1.5 border border-default cursor-pointer select-none`}></div>
                                     <time className="mb-1 text-xs leading-none text-default">{new Intl.DateTimeFormat('en-US', { day: '2-digit', month: 'short', year: '2-digit' }).format(new Date(task.end!))}</time>
                                     <h3 className="text-md text-default">{data.name}</h3>
                                 </li>

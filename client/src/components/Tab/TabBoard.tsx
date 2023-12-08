@@ -10,8 +10,6 @@ import { Alert } from '../Alert';
 import { FormTaskDetail } from '../Form';
 import { Grid } from '../Grid';
 import { TodoItem, TodoState } from '../Todo';
-import { TaskStage } from '../../types/TaskStage';
-import { Task } from '../../types/Task';
 
 interface Props {
     taskStageList: TaskStage[];
@@ -67,9 +65,9 @@ const Component = ({ taskStageList, taskList, setTaskList, fetchTaskList }: Prop
                         </Grid>
                     </DndProvider>
                 ) : (
-                    <Alert icon={<InformationCircleIcon className="icon-x20 mr-2" />} message={'There are no tasks assigned to me.'} />
+                    <Alert icon={<InformationCircleIcon className="mr-2 icon-x20" />} message={'There are no tasks assigned to me.'} />
                 )) : (
-                <Alert icon={<InformationCircleIcon className="icon-x20 mr-2" />} message={'Please select project.'} />
+                <Alert icon={<InformationCircleIcon className="mr-2 icon-x20" />} message={'Please select project.'} />
             )}
             <FormTaskDetail fetchTaskList={fetchTaskList} />
         </React.Fragment>

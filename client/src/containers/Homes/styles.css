@@ -1,0 +1,19 @@
+:root {
+    --text-default-color: rgb(107 114 128);
+}
+
+:root[class~="dark"] {
+    --text-default-color: rgb(229, 231, 235);
+}
+
+#taskChart text {
+    fill: var(--text-default-color);
+}
+
+#subTaskChart text {
+    fill: var(--text-default-color);
+}
+
+#pieChart text {
+    fill: var(--text-default-color);
+}

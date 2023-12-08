@@ -6,6 +6,7 @@ import { NotFound } from './components/NotFound';
 import { Logout } from './containers/Authentication';
 import { Login } from './pages/Authentication';
 import { Homes } from './pages/Homes';
+import { Notification } from './pages/Notification';
 import { Project } from './pages/Project';
 import { Reports } from './pages/Reports';
 import { getTheme } from './redux/Theme/selectors';
@@ -16,7 +17,7 @@ const App = () => {
     const theme = useSelector(getTheme);
 
     React.useEffect(() => {
-        const delay: number = (window.performance.timing.domContentLoadedEventEnd - window.performance.timing.navigationStart) + 100;
+        const delay: number = 300;
         const timer: NodeJS.Timeout = setTimeout(() => {
             setLoading(false);
         }, delay);
@@ -43,6 +44,9 @@ const App = () => {
                     {/* Report */}
                     <Route path="/report" element={<Reports isReady={loading} />} />
                     <Route path="/report/:projectId/:projectUrl" element={<Reports isReady={loading} />} />
+                    {/* Notification */}
+                    <Route path="/notification" element={<Notification isReady={loading} />} />
+
                 </Routes>
             </BrowserRouter>
             <ToastContainer

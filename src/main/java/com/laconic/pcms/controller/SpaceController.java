@@ -74,6 +74,7 @@ public class SpaceController {
         }
     }
 
+
     @PostMapping("/duplicate/{id}")
     public ResponseEntity<SpaceResponse> duplicate(@PathVariable Long id) {
         try {
@@ -100,8 +101,13 @@ public class SpaceController {
     }
 
     @GetMapping("/url/{id}")
-    public ResponseEntity<SpaceResponse> getByUrl(@PathVariable Long id, @RequestParam String url) {
-        return ResponseEntity.ok(this.spaceService.getByUrl(id, url));
+    public ResponseEntity<SpaceResponse> getByUrlAndId(@PathVariable Long id, @RequestParam String url) {
+        return ResponseEntity.ok(this.spaceService.getByUrlAndId(id, url));
+    }
+
+    @GetMapping("/by-url")
+    public ResponseEntity<SpaceResponse> getByUrl(@RequestParam String url) {
+        return ResponseEntity.ok(this.spaceService.getByUrl(url));
     }
 
     @PostMapping("/favorite/{id}")

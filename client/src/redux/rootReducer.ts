@@ -9,6 +9,8 @@ import projectReducer from './Project/reducers';
 import { State as Project } from './Project/type';
 import sidebarReducer from './Sidebar/reducers';
 import { State as Sidebar } from './Sidebar/type';
+import subtaskReducer from './Subtask/reducers';
+import { State as Subtask } from './Subtask/type';
 import taskReducer from './Task/reducers';
 import { State as Task } from './Task/type';
 import themeReducer from './Theme/reducers';
@@ -23,6 +25,7 @@ export interface RootState {
     project: Project;
     sidebar: Sidebar;
     task: Task;
+    subtask: Subtask
     theme: Theme;
     user: User;
 }
@@ -34,6 +37,7 @@ const rootReducer = combineReducers({
     project: projectReducer,
     sidebar: sidebarReducer,
     task: taskReducer,
+    subtask: subtaskReducer,
     theme: themeReducer,
     user: userReducer
 });

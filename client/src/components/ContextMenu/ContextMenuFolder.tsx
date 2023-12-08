@@ -1,15 +1,12 @@
 import { Menu, Transition } from '@headlessui/react';
 import * as HeroIcons from '@heroicons/react/24/outline';
+import axios from 'axios';
 import React from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { setOpenFormMoveFolder, setOpenFormNewProject, setOpenFormRenameFolder } from '../../redux/Dialog/actions';
-import { getFolderId, getMouseX, getMouseY, getSpaceId, getSpaceUrl } from '../../redux/Sidebar/selectors';
-import Http from '../../services/Http';
-import { ContextMenu } from '../../types/ContextMenu';
-import { API } from '../../utils/api';
 import { getOpenFormOpenFolder } from '../../redux/Dialog/selectors';
-import { setFolderId } from '../../redux/Sidebar/actions';
+import { getFolderId, getMouseX, getMouseY, getSpaceId, getSpaceUrl } from '../../redux/Sidebar/selectors';
 
 interface Props {
     folderRef: React.MutableRefObject<HTMLButtonElement | null>;
@@ -37,7 +34,7 @@ const Component = ({ folderRef, fetchSpaceList }: Props) => {
     const handleDelete = async () => {
         await fetchSpaceList();
         try {
-            await Http.remove(`${API.FOLDER}/${folderId!}`);
+            await axios.delete(`${SERVER.API.FOLDER}/${folderId!}`);
             await fetchSpaceList();
             navigate('/no-space');
         } catch (error) {
@@ -48,7 +45,7 @@ const Component = ({ folderRef, fetchSpaceList }: Props) => {
     return (
         <React.Fragment>
             <div className="text-right">
-                <Menu as="div" className="relative inline-block text-left ml-auto z-50">
+                <Menu as="div" className="relative z-50 inline-block ml-auto text-left">
                     <div>
                         <Menu.Button ref={folderRef} className="flex items-center">
                             {null}
@@ -63,7 +60,7 @@ const Component = ({ folderRef, fetchSpaceList }: Props) => {
                         leaveFrom="transform opacity-100 scale-100"
                         leaveTo="transform opacity-0 scale-95"
                     >
-                        <Menu.Items className="absolute mt-2 w-64 origin-top-left divide-y divide-gray-100 rounded-md bg-default shadow-lg border border-default" style={{ top: mouseY!, left: mouseX! }}>
+                        <Menu.Items className="absolute w-64 mt-2 origin-top-left border divide-y divide-gray-100 rounded-md shadow-lg bg-default border-default" style={{ top: mouseY!, left: mouseX! }}>
                             <div className="px-1 py-1">
                                 {contextMenu.map((context, index) => (
                                     <React.Fragment key={index}>
@@ -81,7 +78,7 @@ const Component = ({ folderRef, fetchSpaceList }: Props) => {
                                                     {context.icon && context.icon()}
                                                     {context.title}
                                                     {context.child && context.child.length > 0 ? (
-                                                        <Menu as="div" className="relative inline-block text-left ml-auto">
+                                                        <Menu as="div" className="relative inline-block ml-auto text-left">
                                                             <Menu.Button className="flex items-center">
                                                                 <HeroIcons.ChevronRightIcon className="icon-x16" />
                                                             </Menu.Button>
@@ -94,7 +91,7 @@ const Component = ({ folderRef, fetchSpaceList }: Props) => {
                                                                 leaveFrom="transform opacity-100 scale-100"
                                                                 leaveTo="transform opacity-0 scale-95"
                                                             >
-                                                                <Menu.Items className="absolute left-0 mt-2 w-56 origin-top-left divide-y divide-gray-100 rounded-md bg-default shadow-lg">
+                                                                <Menu.Items className="absolute left-0 w-56 mt-2 origin-top-left divide-y divide-gray-100 rounded-md shadow-lg bg-default">
                                                                     <div className="px-1 py-1">
                                                                         {context.child.map((child, index) => (
                                                                             <React.Fragment key={index}>

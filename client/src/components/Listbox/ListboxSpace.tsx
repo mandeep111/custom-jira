@@ -1,9 +1,7 @@
 import { Listbox, Transition } from '@headlessui/react';
 import { ArrowLongRightIcon, CheckIcon, ChevronUpDownIcon } from '@heroicons/react/24/outline';
+import axios, { AxiosResponse } from 'axios';
 import React from 'react';
-import Http from '../../services/Http';
-import { API } from '../../utils/api';
-import { Space } from '../../types/Space';
 
 interface Props {
     setSelectedSpace: React.Dispatch<React.SetStateAction<Space | null>>;
@@ -24,8 +22,8 @@ const Component = ({ setSelectedSpace }: Props) => {
 
     const fetchSpaceList = async (pageSize: number) => {
         try {
-            const response: { content: Space[], totalElements: number } = await Http.get(`${API.SPACE}/page?pageSize=${pageSize}`);
-            const { content, totalElements } = response;
+            const response: AxiosResponse<APIResponse<Space>> = await axios.get(`${SERVER.API.SPACE}/page?pageSize=${pageSize}`);
+            const { content, totalElements } = response.data;
             setTotalElements(totalElements);
             setSpaceList(content);
             if (content.length > 0) {
@@ -48,11 +46,11 @@ const Component = ({ setSelectedSpace }: Props) => {
         <React.Fragment>
             <Listbox value={selected} onChange={setSelected}>
                 <div className="relative mt-1">
-                    <Listbox.Button className="relative w-full cursor-pointer rounded-lg bg-default border border-default py-2 pl-3 pr-10 text-left">
+                    <Listbox.Button className="relative w-full py-2 pl-3 pr-10 text-left border rounded-lg cursor-pointer bg-default border-default">
                         <span className="block truncate">{selected?.name}</span>
-                        <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
+                        <span className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
                             <ChevronUpDownIcon
-                                className="h-5 w-5 text-gray-400"
+                                className="w-5 h-5 text-gray-400"
                                 aria-hidden="true"
                             />
                         </span>
@@ -63,7 +61,7 @@ const Component = ({ setSelectedSpace }: Props) => {
                         leaveFrom="opacity-100"
                         leaveTo="opacity-0"
                     >
-                        <Listbox.Options className="absolute mt-1 max-h-48 w-full overflow-auto rounded-md bg-default border border-default">
+                        <Listbox.Options className="absolute w-full mt-1 overflow-auto border rounded-md max-h-48 bg-default border-default">
                             {Array.isArray(spaceList) && spaceList.map((space, index) => (
                                 <Listbox.Option
                                     key={index}
@@ -98,9 +96,9 @@ const Component = ({ setSelectedSpace }: Props) => {
                                             <span
                                                 className="block truncate"
                                             >
-                                                <ArrowLongRightIcon className="icon-x16 ml-auto" />
+                                                <ArrowLongRightIcon className="ml-auto icon-x16" />
                                             </span>
-                                            <span className="absolute inset-y-0 left-0 text-sm items-center flex pl-3 pb-1 text-default">
+                                            <span className="absolute inset-y-0 left-0 flex items-center pb-1 pl-3 text-sm text-default">
                                                 {'more'}
                                             </span>
                                         </React.Fragment>

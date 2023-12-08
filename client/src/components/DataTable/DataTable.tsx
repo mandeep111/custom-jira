@@ -1,7 +1,6 @@
 import React from 'react';
 import { Grid } from '../Grid';
 import { ProgressBarTask } from '../ProgressBar';
-import { Project } from '../../types/Project';
 
 interface Grid {
     id: number;
@@ -112,10 +111,10 @@ const Component = ({ columns, project }: TableInformation) => {
 
     return (
         <React.Fragment>
-            <table className="table-relative border-2" width={'100%'}>
+            <table className="border-2 table-relative" width={'100%'}>
                 <thead>
                     <tr>
-                        <th className="text-center bg-neutral-200 dark:bg-zinc-950 p-3 m-3 ">
+                        <th className="p-3 m-3 text-center bg-neutral-200 dark:bg-zinc-950 ">
                             <Grid column={12} gap={1}>
                                 {columns.map((column: TableColumn, index: number) => (
                                     (
@@ -144,7 +143,7 @@ const Component = ({ columns, project }: TableInformation) => {
                     {project.map((projects: Project, index: number) => (
                         <React.Fragment key={index}>
                             <tr>
-                                <td className="text-center p-3">
+                                <td className="p-3 text-center">
                                     <Grid column={12} gap={1}>
                                         <Grid.Column sm={1} md={1} lg={1} xl={1} xxl={1}>
                                             <div className="text">

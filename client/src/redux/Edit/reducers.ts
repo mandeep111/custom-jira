@@ -1,7 +1,8 @@
 import { Action, ActionInterface, State } from './type';
 
 const initialState = {
-    space: false
+    space: false,
+    taskDate: false
 };
 
 const editReducer = (state: State = initialState, action: ActionInterface) => {
@@ -10,6 +11,11 @@ const editReducer = (state: State = initialState, action: ActionInterface) => {
             return {
                 ...state,
                 space: action.payload
+            };
+        case Action.SET_EDIT_TASK_DATE:
+            return {
+                ...state,
+                taskDate: action.payload
             };
         default:
             return state;

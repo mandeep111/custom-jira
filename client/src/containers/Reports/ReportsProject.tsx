@@ -1,23 +1,12 @@
 import axios, { AxiosResponse } from 'axios';
-import React from 'react';
-import { DndProvider } from 'react-dnd';
-import { HTML5Backend } from 'react-dnd-html5-backend';
-import { Chart } from 'react-google-charts';
-import { useSelector } from 'react-redux';
-import { getToken } from '../../redux/Authentication/selectors';
-import { API } from '../../utils/api';
-import { DataTableProject } from '../../components/DataTable';
-import { TableColumnWithCell } from '../../components/DataTable/DataTableProject';
-import {
-    Calendar,
-    momentLocalizer,
-} from 'react-big-calendar';
 import moment from 'moment';
+import React from 'react';
+import { momentLocalizer } from 'react-big-calendar';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
+import { useSelector } from 'react-redux';
+import { DataTableProject } from '../../components/DataTable';
 import { Grid } from '../../components/Grid';
-import { Project } from '../../types/Project';
-import { Task } from '../../types/Task';
-import { SubTask } from '../../types/SubTask';
+import { getToken } from '../../redux/Authentication/selectors';
 
 interface ContentProject {
     pageNo: number | 0,
@@ -48,69 +37,19 @@ const Container = () => {
     };
 
     const [tasks, setTasks] = React.useState<Task[]>([]);
-    const [subTasks, setSubTasks] = React.useState<SubTask[]>([]);
+    const [subTasks, setSubTasks] = React.useState<Subtask[]>([]);
     const [project, setProject] = React.useState<Project[]>([]);
 
     const getProjectByPage = async () => {
-
         try {
-            const response: AxiosResponse<ContentProject> = await axios.get(`${API.PROJECT}/page?pageSize=30`, config);
+            const response: AxiosResponse<ContentProject> = await axios.get(`${SERVER.API.PROJECT}/page?pageSize=30`, config);
             const { content }: ContentProject = response.data;
-            // const checkLot: Lot = content.map((templateId: productVariantList) => response.data.content
             setProject(content);
 
         } catch (error) {
             throw new Error(`An error occurred: ${error as string}`);
         }
     };
-
-    // const data = [
-    //     ['Name', 'Task', 'Done'],
-    //     ['Task', userProfiles?.task, userProfiles?.task_completed],
-    // ];
-
-    // const options = {
-    //     title: 'My Tasks',
-    //     vAxis: { title: 'Value' },
-    //     hAxis: { title: 'Tasks' },
-    //     seriesType: 'bars',
-    //     colors: ['red', 'green'], // Specify custom colors for the series here
-    // };
-
-
-
-
-    // const returnItemsForColumn = (columnId: number | null) => {
-    //     if (columnId !== null) {
-    //         return tasks
-    //             .filter((item) => item.taskStageId === columnId)
-    //             .map((item, index) => (
-    //                 <MyTask
-    //                     key={item.id}
-    //                     name={item.name}
-    //                     task={item}
-    //                     currentColumnName={item.taskStageId}
-    //                     setItems={setTasks}
-    //                     index={index}
-    //                     fetchingData={fetchMyTasks}
-    //                 />
-    //             ));
-    //     }
-    // };
-
-    // const returnSubItemsForColumn = () => {
-    //     return subTasks
-    //         .map((item, index) => (
-    //             <MySubTask
-    //                 key={item.id}
-    //                 subTask={item}
-    //                 setItems={setSubTasks}
-    //                 index={index}
-    //             fetchingData={fetchMySubTasks}
-    //             />
-    //         ));
-    // };
-
 
     const columns = [
         {
@@ -125,21 +64,14 @@ const Container = () => {
         { Header: 'PROGRESS', accessor: 'progress', width: 32, },
     ];
 
-    // const events = tasks.map((task) => ({
-    //     title: task.name,
-    //     start: new Date(task.start),
-    //     end: new Date(task.end),
-    // }));
-
     React.useEffect(() => {
         void getProjectByPage();
     }, [token]);
 
     return (
         <React.Fragment>
-            <div className="bg-default p-4 sm:px-8 sm:pt-6 sm:pb-8 lg:p-4 xl:px-8 xl:pt-6 xl:pb-8 grid text-sm leading-6">
-
-                {/* <div className="flex flex-row flex-nowrap border-b dark:border-default bg-default">
+            <div className="grid p-4 text-sm leading-6 bg-default sm:px-8 sm:pt-6 sm:pb-8 lg:p-4 xl:px-8 xl:pt-6 xl:pb-8">
+                {/* <div className="flex flex-row border-b flex-nowrap dark:border-default bg-default">
                                     <Chart
                                         chartType="PieChart"
                                         data={[
@@ -159,7 +91,7 @@ const Container = () => {
                                         height={'400px'}
                                     />
                                 </div> */}
-                {/* <div className="flex flex-row flex-nowrap border-b dark:border-default bg-default">
+                {/* <div className="flex flex-row border-b flex-nowrap dark:border-default bg-default">
 
                                     <Chart
                                         chartType="ComboChart"
@@ -169,16 +101,14 @@ const Container = () => {
                                         options={options}
                                     />
                                 </div> */}
-
-
-                <div className="text-2xl p-2 ml-5 text-default">{'All Project'}</div>
+                <div className="p-2 ml-5 text-2xl text-default">{'All Project'}</div>
                 <Grid column={12} gap={1}>
-                    <Grid.Column sm={12} md={12} lg={12} xl={12} xxl={12} className="p-5 m-5 bg-default " >
+                    <Grid.Column sm={12} md={12} lg={12} xl={12} xxl={12} className="p-5 m-5 overflow-x-auto bg-default" >
                         <DataTableProject columns={columns} project={project} />
-                    </Grid.Column >
-                </Grid >
+                    </Grid.Column>
+                </Grid>
             </div>
-        </React.Fragment >
+        </React.Fragment>
     );
 };
 

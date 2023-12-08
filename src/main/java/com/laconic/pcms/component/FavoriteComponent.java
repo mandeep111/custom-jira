@@ -8,6 +8,7 @@ import com.laconic.pcms.utils.KeyCloakAuthenticationUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.util.Comparator;
 import java.util.List;
 
 @Component
@@ -38,7 +39,11 @@ public class FavoriteComponent {
         var currentUser = keyCloakAuthenticationUtil.getUser();
         var favoriteProjects = this.favoriteProjectRepo.findAllByUserId(currentUser.getId());
         return responses.stream()
-                .peek(project -> project.setIsFavorite(favoriteProjects.stream().anyMatch(fp -> fp.getProject().getId().equals(project.getId())))).toList();
+                .peek(project -> project.setIsFavorite(favoriteProjects.stream()
+                        .anyMatch(fp -> fp.getProject().getId().equals(project.getId())))
+                ).sorted(Comparator.comparing(ProjectResponse::getIsFavorite, Comparator.reverseOrder())).toList();
+        /*return responses.stream()
+                .peek(project -> project.setIsFavorite(favoriteProjects.stream().anyMatch(fp -> fp.getProject().getId().equals(project.getId())))).toList();*/
     }
 
 }
