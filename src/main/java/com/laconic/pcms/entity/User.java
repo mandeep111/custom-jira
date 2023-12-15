@@ -32,10 +32,13 @@ public class User extends BaseEntity<String> {
     private Long id;
     @NotNull
     @Pattern(regexp = "^[A-Za-z0-9+_.-]+@(.+)$")
+    @Column(unique = true)
     private String email;
     private String fullName;
     @NotNull
     private String password;
+    @Column(unique = true)
+    private String ssoId;
 
     @ManyToMany(mappedBy = "users", fetch = FetchType.LAZY)
     @Fetch(FetchMode.SUBSELECT)

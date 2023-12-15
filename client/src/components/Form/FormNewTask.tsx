@@ -111,8 +111,6 @@ const Component = ({ fetchingData }: Props) => {
         spaceId && void fetchUserList();
     }, [spaceId]);
 
-    console.log(spaceId);
-
     React.useEffect(() => {
         setTask((prevState) => ({
             ...prevState,

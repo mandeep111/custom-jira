@@ -1,7 +1,6 @@
 package com.laconic.pcms.service.concrete;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.laconic.pcms.dto.CreateUserDto;
 import com.laconic.pcms.request.LoginDto;
 import com.laconic.pcms.request.UserLoginRequest;
 import com.laconic.pcms.response.JWTAuthResponse;
@@ -15,15 +14,18 @@ import java.util.List;
 
 public interface IUserService {
     void save(Jwt jwt, UserLoginRequest request) throws IOException, UnirestException;
+
     void update(Jwt jwt, UserLoginRequest userLoginRequest, Long id) throws UnirestException, JsonProcessingException;
-    void updatePassword(Jwt jwt, String newPassword) throws UnirestException, JsonProcessingException;
+
     UserResponse getById(Long id);
+
     UserResponse getByEmail(String email);
 
     PaginationResponse<UserResponse> getAll(int pageNo, int pageSize, String sortBy, String sortDir, String keyword, List<String> searchAttributes);
+
     List<UserResponse> getAll();
-    JWTAuthResponse authenticateUserWithResponse(LoginDto loginDto);
 
     List<UserResponse> getAllBySpace(Long spaceId);
+
     List<UserResponse> getAllByTask(Long taskId);
 }

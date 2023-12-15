@@ -2,7 +2,6 @@ import * as HeroIcons from '@heroicons/react/24/outline';
 import React from 'react';
 import { useDispatch } from 'react-redux';
 import { SidebarFavoriteSpaceList, SidebarMySpaceList } from '.';
-import useAuthorize from '../../hooks/useAuthorize';
 import { setOpenFormNewSpace } from '../../redux/Dialog/actions';
 
 interface Props {
@@ -15,8 +14,6 @@ interface Props {
 }
 
 const Component = ({ spaceRef, projectRef, folderRef, mySpaceList, favSpaceList, fetchMySpaceList }: Props) => {
-
-    useAuthorize();
 
     const dispatch = useDispatch();
 

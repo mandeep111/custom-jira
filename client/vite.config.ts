@@ -55,7 +55,8 @@ export default ({ mode }: { mode: string }) => {
                     TASK: `${env.VITE_SERVER_URL!}/${env.VITE_API_VERSION!}/${env.VITE_API_TASK!}`,
                     TASKSTAGE: `${env.VITE_SERVER_URL!}/${env.VITE_API_VERSION!}/${env.VITE_API_TASKSTAGE!}`,
                     USER: `${env.VITE_SERVER_URL!}/${env.VITE_API_VERSION!}/${env.VITE_API_USER!}`,
-                    USERPROFILE: `${env.VITE_SERVER_URL!}/${env.VITE_API_VERSION!}/${env.VITE_API_USERPROFILE!}`
+                    USERPROFILE: `${env.VITE_SERVER_URL!}/${env.VITE_API_VERSION!}/${env.VITE_API_USERPROFILE!}`,
+                    KEYCLOAK: `${env.VITE_SERVER_URL!}/${env.VITE_API_VERSION!}/keycloak`
                 }
             }
         },

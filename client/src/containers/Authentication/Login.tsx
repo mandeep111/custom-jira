@@ -3,7 +3,7 @@ import React from 'react';
 import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { setExpirationDate, setToken, setUserId } from '../../redux/Authentication/actions';
+import { setExpirationDate, setUserId } from '../../redux/Authentication/actions';
 
 interface Response {
     id: number | null;
@@ -11,12 +11,13 @@ interface Response {
     token: string;
     type: 'Bearer';
     lastLogin: string;
-    expirationDate: number | null;
+    sessionExpirationTime: number | null;
 }
 
-interface Auth {
+interface OAuth {
     email: string,
-    password: string
+    password: string,
+    grantType: string
 }
 
 const Container = () => {
@@ -25,10 +26,12 @@ const Container = () => {
 
     const navigate = useNavigate();
     const [remember, setRemember] = React.useState(false);
-    const [user, setUser] = React.useState<Auth>({
+    const [authentication, setAuthentication] = React.useState<OAuth>({
         email: '',
-        password: ''
+        password: '',
+        grantType: 'password'
     });
+    const [email, setEmail] = React.useState<string>();
 
     const handleRemember = (event: React.ChangeEvent<HTMLInputElement>) => {
         setRemember(event.target.checked);
@@ -37,25 +40,19 @@ const Container = () => {
     const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         try {
-            const response = await axios.post<Response>(SERVER.API.AUTHENTICATION, user, {
+            const response = await axios.post<Response>(`${SERVER.API.AUTHENTICATION}/login`, authentication, {
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             });
-            axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
-
-            dispatch(setToken(response.data.token));
+            setEmail(response.data.email);
             dispatch(setUserId(response.data.id));
-            dispatch(setExpirationDate(response.data.expirationDate));
-
+            dispatch(setExpirationDate(response.data.sessionExpirationTime));
+            localStorage.setItem('user_id', response.data.id!.toString());
             if (remember) {
-                localStorage.setItem('jwt', response.data.token);
-                localStorage.setItem('user_id', response.data.id!.toString());
-                localStorage.setItem('expiration_date', response.data.expirationDate!.toString());
+                localStorage.setItem('remember_me', 'true');
             } else {
-                sessionStorage.setItem('jwt', response.data.token);
-                sessionStorage.setItem('user_id', response.data.id!.toString());
-                sessionStorage.setItem('expiration_date', response.data.expirationDate!.toString());
+                localStorage.setItem('remember_me', 'false');
+                localStorage.setItem('session_expiration_time', (response.data.sessionExpirationTime! * 1000).toString());
             }
-
             toast.success('Welcome', {
                 position: 'top-center',
                 onOpen: () => {
@@ -67,12 +64,21 @@ const Container = () => {
         }
     };
 
-
     React.useEffect(() => {
-        if (localStorage.getItem('jwt') || sessionStorage.getItem('jwt')) {
+        if (localStorage.getItem('keycloak_user_id')) {
             navigate(-1);
         }
     }, [navigate]);
+
+    React.useEffect(() => {
+        if (email) {
+            const getUserId = async () => {
+                const response = await axios.get<Response[]>(`${SERVER.API.KEYCLOAK}/users?user=${email}`);
+                localStorage.setItem('keycloak_user_id', response.data[0].id!.toString());
+            };
+            void getUserId();
+        }
+    }, [email]);
 
     return (
         <React.Fragment>
@@ -84,7 +90,7 @@ const Container = () => {
                         type="email"
                         className="text-gray-800 bg-white border outline-none rounded-lg block w-full p-2"
                         placeholder="name@company.com"
-                        onChange={(event) => setUser({ ...user, email: event.target.value })}
+                        onChange={(event) => setAuthentication({ ...authentication, email: event.target.value })}
                         required={true}
                     />
                 </div>
@@ -95,7 +101,7 @@ const Container = () => {
                         type="password"
                         placeholder="••••••••"
                         className="text-gray-800 bg-white border outline-none rounded-lg block w-full p-2"
-                        onChange={(event) => setUser({ ...user, password: event.target.value })}
+                        onChange={(event) => setAuthentication({ ...authentication, password: event.target.value })}
                         required={true}
                     />
                 </div>

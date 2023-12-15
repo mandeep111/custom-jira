@@ -10,7 +10,6 @@ import com.laconic.pcms.response.SpaceResponse;
 import com.laconic.pcms.response.UserResponse;
 import com.laconic.pcms.service.concrete.ISpaceService;
 import com.laconic.pcms.service.concrete.IUserService;
-import com.laconic.pcms.utils.KeyCloakAuthenticationUtil;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -22,13 +21,12 @@ import java.util.List;
 
 import static com.laconic.pcms.component.KeyCloakComponent.getEmailFromToken;
 import static com.laconic.pcms.constants.AppConstants.*;
-import static com.laconic.pcms.utils.KeyCloakAuthenticationUtil.getUserEmail;
 
 @RestController
 @RequestMapping(Routes.user)
 @RequiredArgsConstructor
 public class UserController {
-    private final KeyCloakAuthenticationUtil keyCloakAuthenticationUtil;
+
     private final IUserService userService;
     private final ISpaceService spaceService;
 
@@ -41,8 +39,8 @@ public class UserController {
         }
     }
 
-    @PutMapping(Routes.update)
-    public void update(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody UserLoginRequest userLoginRequest, @PathVariable("id") Long id) {
+    @PutMapping("/{id}")
+    public void update(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody UserLoginRequest userLoginRequest, @PathVariable Long id) {
         try {
             this.userService.update(jwt, userLoginRequest, id);
         } catch (Exception e) {

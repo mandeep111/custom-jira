@@ -81,6 +81,7 @@ declare global {
      * @property {string} USER - Represents the user API type.
      * @property {string} FORM - Represents the form API type.
      * @property {string} USERPROFILE - Represents the user profile API type.
+     * @property {string} KEYCLOAK - Represents the Keycloak API type.
      */
     interface APITypes {
         AUTHENTICATION: string;
@@ -93,6 +94,7 @@ declare global {
         USER: string;
         FORM: string;
         USERPROFILE: string;
+        KEYCLOAK: string;
     }
 
     /**

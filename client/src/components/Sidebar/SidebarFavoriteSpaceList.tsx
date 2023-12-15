@@ -4,7 +4,6 @@ import React from 'react';
 import { useDispatch } from 'react-redux';
 import { Link } from 'react-router-dom';
 import { SidebarFolder, SidebarProject } from '.';
-import useAuthorize from '../../hooks/useAuthorize';
 import { setFavoriteSpace, setMouseX, setMouseY, setProjectName, setSpaceId, setSpaceName, setSpaceUrl } from '../../redux/Sidebar/actions';
 
 interface Props {
@@ -17,7 +16,6 @@ interface Props {
 
 const Component = ({ spaceRef, projectRef, folderRef, favSpaceList, fetchMySpaceList }: Props) => {
 
-    useAuthorize();
     const dispatch = useDispatch();
 
     const handleContextMenu = (event: React.MouseEvent<HTMLDivElement, MouseEvent>, space: Space) => {

@@ -50,7 +50,7 @@ const Container = () => {
     const [subTaskId, setSubTaskId] = React.useState<number | null>(null);
     const all = {
         id: null,
-        name: '',
+        name: 'All',
     };
     const spaceId: number | null = selected?.id || null;
 

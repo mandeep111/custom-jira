@@ -12,9 +12,11 @@ import { setTheme } from '../../redux/Theme/actions';
 import { ContextMenuFolder, ContextMenuProject, ContextMenuSpace } from '../ContextMenu';
 import * as Form from '../Form';
 import Data from './data';
+import useAuthorize from '../../hooks/useAuthorize';
 
 const Component = () => {
 
+    useAuthorize();
     const { general } = Data();
     const { spaceId } = useParams();
     const dispatch = useDispatch();
@@ -128,11 +130,13 @@ const Component = () => {
                         fetchMySpaceList={fetchMySpaceList}
                     />
                 </nav>
-                <div className="mb-2">
-                    <hr className="pb-2" />
-                    <Link to="/logout" title="Logout" className="button">
-                        <HeroIcons.PowerIcon className="mr-0 icon-x16" />
-                    </Link>
+                <hr className="pb-2" />
+                <div className="flex justify-between fixed bottom-0">
+                    <div className="mb-2">
+                        <Link to="/logout" title="Logout" className="button">
+                            <HeroIcons.PowerIcon className="mr-0 icon-x16" />
+                        </Link>
+                    </div>
                 </div>
                 <ContextMenuSpace
                     spaceRef={spaceRef}

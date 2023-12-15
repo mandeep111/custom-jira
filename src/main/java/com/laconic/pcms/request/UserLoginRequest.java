@@ -1,5 +1,6 @@
 package com.laconic.pcms.request;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.laconic.pcms.validation.EmailRegex;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -21,5 +22,4 @@ public class UserLoginRequest {
     @NotNull(message = NAME_MESSAGE)
     @NotEmpty(message = NAME_MESSAGE)
     private String fullName;
-    private String defaultPage;
 }

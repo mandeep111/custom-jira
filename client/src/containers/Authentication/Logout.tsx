@@ -1,28 +1,26 @@
-import React from 'react';
-import { useDispatch } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
-import { setToken } from '../../redux/Authentication/actions';
 import axios from 'axios';
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const Container = () => {
 
     const navigate = useNavigate();
-    const dispatch = useDispatch();
 
-    React.useEffect(() => {
-        localStorage.removeItem('jwt');
-        sessionStorage.removeItem('jwt');
+    const handleDestroySession = async () => {
+        try {
+            await axios.get(`${SERVER.API.AUTHENTICATION}/logout`);
+        } catch (error) {
+            throw new Error(error as string);
+        } finally {
+            localStorage.removeItem('user_id');
+            localStorage.removeItem('session_expiration_time');
+            localStorage.removeItem('keycloak_user_id');
+            localStorage.removeItem('remember_me');
+            navigate('/login');
+        }
+    };
 
-        localStorage.removeItem('user_id');
-        sessionStorage.removeItem('user_id');
-
-        localStorage.removeItem('expiration_date');
-        sessionStorage.removeItem('expiration_date');
-
-        dispatch(setToken(null));
-        navigate('/login');
-        axios.defaults.headers.common['Authorization'] = '';
-    }, [navigate, setToken]);
+    React.useEffect(() => void handleDestroySession(), []);
 
     return null;
 };

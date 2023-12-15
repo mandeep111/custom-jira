@@ -6,8 +6,8 @@ import com.laconic.pcms.dto.CreateUserDto;
 import com.laconic.pcms.exceptions.ServerException;
 import com.laconic.pcms.request.LoginDto;
 import com.laconic.pcms.response.JWTAuthResponse;
-import com.laconic.pcms.service.concrete.IUserService;
 import com.mashape.unirest.http.exceptions.UnirestException;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -16,29 +16,16 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/v1/login")
+@RequestMapping("/v1/auth")
 public class LoginController {
 
-    private final IUserService userService;
     private final KeyCloakComponent keyCloakComponent;
-    public LoginController(IUserService userService, KeyCloakComponent keyCloakComponent) {
-        this.userService = userService;
+
+    public LoginController(KeyCloakComponent keyCloakComponent) {
         this.keyCloakComponent = keyCloakComponent;
     }
 
-
-    // db login
     @PostMapping(value = "/login", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
-    public ResponseEntity<JWTAuthResponse> authenticateUser(@Valid LoginDto loginDto) {
-        try {
-            return ResponseEntity.ok().body(this.userService.authenticateUserWithResponse(loginDto));
-        } catch (Exception e) {
-            throw new ServerException(e.getMessage());
-        }
-    }
-
-    // keycloak login
-    @PostMapping(consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
     public ResponseEntity<JWTAuthResponse> login(@Valid LoginDto loginRequest) throws UnirestException {
         return keyCloakComponent.getAccessToken(loginRequest);
     }
@@ -53,9 +40,9 @@ public class LoginController {
     }
 
     @GetMapping("/logout")
-    public boolean logout(@AuthenticationPrincipal Jwt jwt) {
+    public ResponseEntity<String> logout(HttpServletRequest request) {
         try {
-            return keyCloakComponent.logout(jwt);
+            return keyCloakComponent.logout(request);
         } catch (UnirestException e) {
             throw new ServerException(e.getMessage());
         }

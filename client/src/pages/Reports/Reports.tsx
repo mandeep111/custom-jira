@@ -3,12 +3,10 @@ import { useSelector } from 'react-redux';
 import { Sidebar } from '../../components/Sidebar';
 import { Spinner } from '../../components/Spinner';
 import { Reports } from '../../containers/Reports';
-import useAuthorize from '../../hooks/useAuthorize';
 import { getToggle } from '../../redux/Sidebar/selectors';
 
 const Page = ({ isReady }: PageProps) => {
-
-    useAuthorize();
+    
     const toggle = useSelector(getToggle);
 
     return (

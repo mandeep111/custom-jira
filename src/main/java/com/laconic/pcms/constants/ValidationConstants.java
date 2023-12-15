@@ -4,6 +4,7 @@ public abstract class ValidationConstants {
     public final static String NAME_MESSAGE = "Name can not be empty";
     public static final String USERNAME_MESSAGE = "Username can not be null";
     public static final String PASSWORD_MESSAGE = "Password can not be null";
+    public static final String GRANT_TYPE_MESSAGE = "Password can not be null";
     public static final String SPACE_MESSAGE = "Space Id can not be null";
     public static final String PROJECT_MESSAGE = "Project Id can not be null";
     public static final String TASK_MESSAGE = "Task Id can not be null";
